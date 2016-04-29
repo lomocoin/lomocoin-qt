@@ -553,12 +553,28 @@ void CWalletTx::GetAmounts(int64& nGeneratedImmature, int64& nGeneratedMature, l
         return;
     }
 
-    // Compute fee:
+    // Compute fee and find account:
     int64 nDebit = GetDebit();
     if (nDebit > 0) // debit>0 means we signed/sent this transaction
     {
         int64 nValueOut = GetValueOut();
         nFee = nDebit - nValueOut;
+        {
+            LOCK(pwallet->cs_wallet);
+            map<uint256, CWalletTx>::const_iterator mi = pwallet->mapWallet.find(vin[0].prevout.hash);
+            if (mi != pwallet->mapWallet.end())
+            {
+                CTxDestination address;
+                const CWalletTx& prev = (*mi).second;            
+                if (vin[0].prevout.n < prev.vout.size() 
+                    && ExtractDestination(prev.vout[vin[0].prevout.n].scriptPubKey, address))
+                {
+                    map<CTxDestination, string>::const_iterator r = pwallet->mapAddressBook.find(address);
+                    if (r != pwallet->mapAddressBook.end())
+                        strSentAccount = (*r).second; 
+                }
+            }
+        }
     }
 
     // Sent/received.
@@ -599,39 +615,12 @@ void CWalletTx::GetAccountAmounts(const string& strAccount, int64& nGenerated, i
 
     if (strAccount == "")
         nGenerated = allGeneratedMature;
-/*
+
     if (strAccount == strSentAccount)
     {
         BOOST_FOREACH(const PAIRTYPE(CTxDestination,int64)& s, listSent)
             nSent += s.second;
         nFee = allFee;
-    }
-*/
-
-    if (!IsCoinBase() && !IsCoinStake())
-    {
-        LOCK(pwallet->cs_wallet);
-
-        map<uint256, CWalletTx>::const_iterator mi = pwallet->mapWallet.find(vin[0].prevout.hash);
-        if (mi != pwallet->mapWallet.end())
-        {
-            const CWalletTx& prev = (*mi).second;
-            if (vin[0].prevout.n < prev.vout.size())
-            {
-                CTxDestination address;
-                if (ExtractDestination(prev.vout[vin[0].prevout.n].scriptPubKey, address)
-                    && pwallet->mapAddressBook.count(address))
-                {
-                    map<CTxDestination, string>::const_iterator mi = pwallet->mapAddressBook.find(address);
-                    if (mi != pwallet->mapAddressBook.end() && (*mi).second == strAccount)
-                    {
-                        BOOST_FOREACH(const PAIRTYPE(CTxDestination,int64)& s, listSent)
-                            nSent += s.second;
-                        nFee = allFee;
-                    }
-                }
-            }
-        }
     }
 
     {

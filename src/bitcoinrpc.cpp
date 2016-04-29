@@ -1798,30 +1798,6 @@ Value listaccounts(const Array& params, bool fHelp)
         list<pair<CTxDestination, int64> > listReceived;
         list<pair<CTxDestination, int64> > listSent;
         wtx.GetAmounts(nGeneratedImmature, nGeneratedMature, listReceived, listSent, nFee, strSentAccount);
-		// add by wxd 
-        if (!wtx.IsCoinBase() && !wtx.IsCoinStake())
-        {
-            map<uint256, CWalletTx>::const_iterator mi = pwalletMain->mapWallet.find(wtx.vin[0].prevout.hash);
-            if (mi != pwalletMain->mapWallet.end())
-            {
-                const CWalletTx& prev = (*mi).second;
-                if (wtx.vin[0].prevout.n < prev.vout.size())
-                {
-                    CTxDestination address;
-                    if (ExtractDestination(prev.vout[wtx.vin[0].prevout.n].scriptPubKey, address)
-                        && pwalletMain->mapAddressBook.count(address))
-                    {
-                        map<CTxDestination, string>::const_iterator mi = pwalletMain->mapAddressBook.find(address);
-                         
-                        if (mi != pwalletMain->mapAddressBook.end())
-                        {
-                            strSentAccount = (*mi).second;
-                        }
-                    }
-                }
-            }
-        }
-		//end add
 
         mapAccountBalances[strSentAccount] -= nFee;
         BOOST_FOREACH(const PAIRTYPE(CTxDestination, int64)& s, listSent)
