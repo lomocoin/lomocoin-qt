@@ -63,7 +63,6 @@ const string strMessageMagic = "LoMoCoin Signed Message:\n";
 double dHashesPerSec;
 int64 nHPSTimerStart;
 
-uint256 hashSingleStakeBlock;
 // Settings
 int64 nTransactionFee = MIN_TX_FEE;
 
@@ -127,7 +126,8 @@ void SyncWithWallets(const CTransaction& tx, const CBlock* pblock, bool fUpdate,
         if (tx.IsCoinStake())
         {
             BOOST_FOREACH(CWallet* pwallet, setpwalletRegistered)
-                if (pwallet->IsFromMe(tx))
+                if (pwallet->IsFromMe(tx) || pwallet->IsMineForMintingOnly(tx)
+                    || pwallet->IsMineForMultiSig(tx))
                     pwallet->DisableTransaction(tx);
         }
         return;
@@ -295,6 +295,23 @@ bool CTransaction::ReadFromDisk(COutPoint prevout)
     return ReadFromDisk(txdb, prevout, txindex);
 }
 
+bool CTransaction::IsConsistentCoinStake(const CScript& script) const
+{
+    if (!IsCoinStake())
+    {
+        return false;
+    }
+
+    CScript scriptPubKey;
+    scriptPubKey.clear();
+    scriptPubKey << OP_HASH160 << script.GetID() << OP_EQUAL;
+
+    BOOST_FOREACH(const CTxOut& txout, vout)
+        if (txout.nValue > 0 && txout.scriptPubKey != scriptPubKey)
+            return false;
+    return true;
+}
+
 bool CTransaction::IsStandard() const
 {
     BOOST_FOREACH(const CTxIn& txin, vin)
@@ -352,7 +369,7 @@ bool CTransaction::AreInputsStandard(const MapPrevTx& mapInputs) const
         const CScript& prevScript = prev.scriptPubKey;
         if (!Solver(prevScript, whichType, vSolutions))
             return false;
-        int nArgsExpected = ScriptSigArgsExpected(whichType, vSolutions);
+        int nArgsExpected = ScriptSigArgsExpected(whichType, vSolutions, IsCoinStake());
         if (nArgsExpected < 0)
             return false;
 
@@ -378,7 +395,7 @@ bool CTransaction::AreInputsStandard(const MapPrevTx& mapInputs) const
                 return false;
 
             int tmpExpected;
-            tmpExpected = ScriptSigArgsExpected(whichType2, vSolutions2);
+            tmpExpected = ScriptSigArgsExpected(whichType2, vSolutions2, IsCoinStake());
             if (tmpExpected < 0)
                 return false;
             nArgsExpected += tmpExpected;
@@ -1346,6 +1363,8 @@ bool CTransaction::ConnectInputs(CTxDB& txdb, MapPrevTx inputs,
             int64 nStakeReward = GetValueOut() - nValueIn;
             if (nStakeReward > GetProofOfStakeReward(nCoinAge) - GetMinFee() + MIN_TX_FEE)
                 return DoS(100, error("ConnectInputs() : %s stake reward exceeded", GetHash().ToString().substr(0,10).c_str()));
+            if (nStakeReward < 0)
+                return DoS(100, error("ConnectInputs() : %s stake reward invalid", GetHash().ToString().substr(0,10).c_str()));
         }
         else
         {
@@ -1816,17 +1835,11 @@ bool CTransaction::GetCoinAge(CTxDB& txdb, uint64& nCoinAge) const
         if (fDebug && GetBoolArg("-printcoinage"))
             printf("coin age nValueIn=%-12I64d nTimeDiff=%d bnCentSecond=%s\n", nValueIn, nTime - txPrev.nTime, bnCentSecond.ToString().c_str());
     }
-//COINAGE
+
     CBigNum bnCoinMinute = bnCentSecond * CENT / COIN / 60;
     if (fDebug && GetBoolArg("-printcoinage"))
         printf("coin age bnCoinMinute=%s\n", bnCoinMinute.ToString().c_str());
     nCoinAge = bnCoinMinute.getuint64();
-/*
-    CBigNum bnCoinDay = bnCentSecond * CENT / COIN / (24 * 60 * 60);
-    if (fDebug && GetBoolArg("-printcoinage"))
-        printf("coin age bnCoinDay=%s\n", bnCoinDay.ToString().c_str());
-    nCoinAge = bnCoinDay.getuint64();
-*/
     return true;
 }
 
@@ -1845,7 +1858,7 @@ bool CBlock::GetCoinAge(uint64& nCoinAge) const
             return false;
     }
 
-    if (nCoinAge == 0) // block coin age minimum 1 coin-day
+    if (nCoinAge == 0) // block coin age minimum 1 coin-minute
         nCoinAge = 1;
     if (fDebug && GetBoolArg("-printcoinage"))
         printf("block coin age total nCoinDays=%"PRI64d"\n", nCoinAge);
@@ -2225,14 +2238,14 @@ bool CBlock::SignBlock(const CKeyStore& keystore)
             return false;
         return key.Sign(GetHash(), vchBlockSig);
     }
-	else if (whichType == TX_SCRIPTHASH)
+    else if (whichType == TX_SCRIPTHASH)
     {
         CScript subscript;
         if (!keystore.GetCScript(CScriptID(uint160(vSolutions[0])), subscript))
             return false;
         if (!Solver(subscript, whichType, vSolutions))
             return false;
-        if (whichType != TX_COLDMINTING)
+        if (whichType != TX_COLDMINTING && whichType != TX_MULTISIGCOLDMINTING)
             return false;
         CKey key;
         if (!keystore.GetKey(uint160(vSolutions[0]), key))
@@ -2290,7 +2303,7 @@ bool CBlock::CheckBlockSignature() const
         CScript script(scriptSerialized.begin(), scriptSerialized.end());
         if (!Solver(script, whichType, vSolutions))
             return false;
-        if (whichType != TX_COLDMINTING)
+        if (whichType != TX_COLDMINTING && whichType != TX_MULTISIGCOLDMINTING)
             return false;
 
         // Verify the scriptSig pubkey matches the minting key
@@ -4158,7 +4171,7 @@ static bool fGenerateBitcoins = false;
 static bool fLimitProcessors = false;
 static int nLimitProcessors = -1;
 
-void BitcoinMiner(CWallet *pwallet, bool fProofOfStake,bool fGenerateSingleBlock, int nTimeout)
+void BitcoinMiner(CWallet *pwallet, bool fProofOfStake)
 {
     printf("CPUMiner started for proof-of-%s\n", fProofOfStake? "stake" : "work");
     SetThreadPriority(THREAD_PRIORITY_LOWEST);
@@ -4167,13 +4180,8 @@ void BitcoinMiner(CWallet *pwallet, bool fProofOfStake,bool fGenerateSingleBlock
     CReserveKey reservekey(pwallet);
     unsigned int nExtraNonce = 0;
 
-    int64 nStartTime = GetTime();
-
     while (fGenerateBitcoins || fProofOfStake)
     {
-        if (nTimeout && (GetTime() - nStartTime > nTimeout))
-            return;
-
         if (fShutdown)
             return;
         while (vNodes.empty() || IsInitialBlockDownload())
@@ -4217,15 +4225,8 @@ void BitcoinMiner(CWallet *pwallet, bool fProofOfStake,bool fGenerateSingleBlock
                 strMintWarning = "";
                 printf("CPUMiner : proof-of-stake block found %s\n", pblock->GetHash().ToString().c_str()); 
                 SetThreadPriority(THREAD_PRIORITY_NORMAL);
-                
-                bool fSuccess = CheckWork(pblock.get(), *pwalletMain, reservekey);
+                CheckWork(pblock.get(), *pwalletMain, reservekey);
                 SetThreadPriority(THREAD_PRIORITY_LOWEST);
-                if (fSuccess && fGenerateSingleBlock)
-                {
-                    hashSingleStakeBlock = pblock->GetHash();
-                    return;
-                }
-
             }
             Sleep(500);
             continue;
@@ -4350,7 +4351,7 @@ void static ThreadBitcoinMiner(void* parg)
     try
     {
         vnThreadsRunning[THREAD_MINER]++;
-        BitcoinMiner(pwallet, false, false, 0);
+        BitcoinMiner(pwallet, false);
         vnThreadsRunning[THREAD_MINER]--;
     }
     catch (std::exception& e) {

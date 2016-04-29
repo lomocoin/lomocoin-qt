@@ -37,8 +37,9 @@ enum txnouttype
     TX_PUBKEYHASH,
     TX_SCRIPTHASH,
     TX_MULTISIG,
-    TX_COLDMINTING,
     TX_NULL_DATA,
+    TX_COLDMINTING,
+    TX_MULTISIGCOLDMINTING,
 };
 
 class CNoDestination {
@@ -192,7 +193,7 @@ enum opcodetype
     OP_NOP9 = 0xb8,
     OP_NOP10 = 0xb9,
 
-    // peercoin
+    // coldminting
     OP_COINSTAKE = 0xc0,
 
     // template matching params
@@ -546,6 +547,7 @@ public:
     void SetDestination(const CTxDestination& address);
     void SetMultisig(int nRequired, const std::vector<CKey>& keys);
     void SetColdMinting(const CKeyID& mintingKey, const CKeyID& spendingKey);
+    void SetMultisigColdMinting(const CKeyID& mintingKey, const CScript& spendingScript);
 
     void PrintHex() const
     {
@@ -592,10 +594,11 @@ public:
 
 bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& script, const CTransaction& txTo, unsigned int nIn, int nHashType);
 bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, std::vector<std::vector<unsigned char> >& vSolutionsRet);
-int ScriptSigArgsExpected(txnouttype t, const std::vector<std::vector<unsigned char> >& vSolutions);
+int ScriptSigArgsExpected(txnouttype t, const std::vector<std::vector<unsigned char> >& vSolutions, bool fCoinStake);
 bool IsStandard(const CScript& scriptPubKey, txnouttype& whichType);
 bool IsMine(const CKeyStore& keystore, const CScript& scriptPubKey);
 bool IsMine(const CKeyStore& keystore, const CTxDestination &dest);
+bool IsMineForMultiSig(const CKeyStore &keystore, const CScript& scriptPubKey);
 bool IsMineForMintingOnly(const CKeyStore& keystore, const CScript& scriptPubKey);
 bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet);
 bool ExtractDestinations(const CScript& scriptPubKey, txnouttype& typeRet, std::vector<CTxDestination>& addressRet, int& nRequiredRet);

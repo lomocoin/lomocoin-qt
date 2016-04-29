@@ -382,6 +382,21 @@ public:
         }
     }
 
+    bool GetScriptID(CScriptID &scriptID) const {
+        if (!IsValid())
+            return false;
+        switch (nVersion) {
+        case SCRIPT_ADDRESS:
+        case SCRIPT_ADDRESS_TEST: {
+            uint160 id;
+            memcpy(&id, &vchData[0], 20);
+            scriptID = CScriptID(id);
+            return true;
+        }
+        default: return false;
+        }
+    }
+
     bool IsScript() const {
         if (!IsValid())
             return false;

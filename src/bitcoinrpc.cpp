@@ -487,70 +487,7 @@ Value stop(const Array& params, bool fHelp)
     return "lomocoin server stopping";
 }
 
-Value generatestake(const Array& params, bool fHelp)
-{
-    if (fHelp || params.size() > 1)
-        throw runtime_error(
-            "generatestake [timeout]\n"
-            "generate a single proof of stake block"
-            );
 
-    if (GetBoolArg("-stakegen", true))
-        throw JSONRPCError(-3, "Stake generation enabled. Won't start another generation.");
-
-    int nTimeout = 0;
-    if (params.size() > 0)
-        nTimeout = params[0].get_int();
-
-    BitcoinMiner(pwalletMain, true, true, nTimeout);
-    return hashSingleStakeBlock.ToString();
-}
-
-Value addcoldmintingaddress(const Array& params, bool fHelp)
-{
-    if (fHelp || params.size() < 2 || params.size() > 3)
-    {
-        string msg = "addcoldmintingaddress <minting address> <spending address> [account]\n"
-            "Add a cold minting address to the wallet.\n"
-            "The coins sent to this address will be mintable only with the minting private key.\n"
-            "And they will be spendable only with the spending private key.\n"
-            "If [account] is specified, assign address to [account].";
-        throw runtime_error(msg);
-    }
-
-    string strAccount;
-    if (params.size() > 2)
-        strAccount = AccountFromValue(params[2]);
-
-    CBitcoinAddress mintingAddress(params[0].get_str());
-    CBitcoinAddress spendingAddress(params[1].get_str());
-
-    if (!mintingAddress.IsValid())
-        throw JSONRPCError(-5, "Invalid minting address");
-    if (!spendingAddress.IsValid())
-        throw JSONRPCError(-5, "Invalid spending address");
-
-    CKeyID mintingKeyID;
-    CKeyID spendingKeyID;
-
-    if (!mintingAddress.GetKeyID(mintingKeyID))
-        throw JSONRPCError(-5, "Minting address does not refer to a key");
-    if (!spendingAddress.GetKeyID(spendingKeyID))
-        throw JSONRPCError(-5, "Spending address does not refer to a key");
-
-    // Construct using pay-to-script-hash:
-    CScript inner;
-    inner.SetColdMinting(mintingKeyID, spendingKeyID);
-
-    CScriptID innerID = inner.GetID();
-    if (!pwalletMain->AddCScript(inner))
-        throw JSONRPCError(-4, "Failed to add script to wallet");
-
-    if (!pwalletMain->SetAddressBookName(innerID, strAccount))
-        throw JSONRPCError(-4, "Failed to set account");
-
-    return CBitcoinAddress(innerID).ToString();
-}
 Value getblockcount(const Array& params, bool fHelp)
 {
     if (fHelp || params.size() != 0)
@@ -758,6 +695,70 @@ Value getinfo(const Array& params, bool fHelp)
     return obj;
 }
 
+Value addcoldmintingaddress(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() < 2 || params.size() > 3)
+    {
+        string msg = "addcoldmintingaddress <minting address> <spending address> [account]\n"
+            "Add a cold minting address to the wallet.\n"
+            "The coins sent to this address will be mintable only with the minting private key.\n"
+            "And they will be spendable only with the spending private key.\n"
+            "If [account] is specified, assign address to [account].";
+        throw runtime_error(msg);
+    }
+
+    string strAccount;
+    if (params.size() > 2)
+        strAccount = AccountFromValue(params[2]);
+
+    CBitcoinAddress mintingAddress(params[0].get_str());
+    CBitcoinAddress spendingAddress(params[1].get_str());
+
+    if (!mintingAddress.IsValid())
+        throw JSONRPCError(-5, "Invalid minting address");
+    if (!spendingAddress.IsValid())
+        throw JSONRPCError(-5, "Invalid spending address");
+
+    CKeyID mintingKeyID;
+
+    if (!mintingAddress.GetKeyID(mintingKeyID))
+        throw JSONRPCError(-5, "Minting address does not refer to a key");
+
+    // Construct using pay-to-script-hash:
+    CScript inner;
+
+    if (spendingAddress.IsScript())
+    {
+        CScriptID spendingScriptID;
+        if (!spendingAddress.GetScriptID(spendingScriptID))
+            throw JSONRPCError(-5, "Spending address does not refer to script");
+        CScript spendingScript;
+        if (!pwalletMain->GetCScript(spendingScriptID, spendingScript))
+            throw JSONRPCError(-5, "Spending address does not refer to redeem script");
+        txnouttype txType;
+        vector<vector<unsigned char> > vSolutions;
+        if (!Solver(spendingScript, txType, vSolutions)
+            || txType != TX_MULTISIG)
+            throw JSONRPCError(-5, "Spending address does not refer to multisig script");
+        inner.SetMultisigColdMinting(mintingKeyID, spendingScript);
+    }
+    else
+    {
+        CKeyID spendingKeyID;
+        if (!spendingAddress.GetKeyID(spendingKeyID))
+            throw JSONRPCError(-5, "Spending address does not refer to a key");
+        inner.SetColdMinting(mintingKeyID, spendingKeyID);
+    }
+
+    CScriptID innerID = inner.GetID();
+    if (!pwalletMain->AddCScript(inner))
+        throw JSONRPCError(-4, "Failed to add script to wallet");
+
+    if (!pwalletMain->SetAddressBookName(innerID, strAccount))
+        throw JSONRPCError(-4, "Failed to set account");
+
+    return CBitcoinAddress(innerID).ToString();
+}
 
 Value getmininginfo(const Array& params, bool fHelp)
 {
@@ -1802,6 +1803,7 @@ Value listaccounts(const Array& params, bool fHelp)
         mapAccountBalances[strSentAccount] -= nFee;
         BOOST_FOREACH(const PAIRTYPE(CTxDestination, int64)& s, listSent)
             mapAccountBalances[strSentAccount] -= s.second;
+
         if (wtx.GetDepthInMainChain() >= nMinDepth)
         {
             mapAccountBalances[""] += nGeneratedMature;
@@ -2169,7 +2171,7 @@ public:
         BOOST_FOREACH(const CTxDestination& addr, addresses)
             a.push_back(CBitcoinAddress(addr).ToString());
         obj.push_back(Pair("addresses", a));
-        if (whichType == TX_MULTISIG)
+        if (whichType == TX_MULTISIG || whichType == TX_MULTISIGCOLDMINTING)
             obj.push_back(Pair("sigsrequired", nRequired));
         return obj;
     }
@@ -2827,7 +2829,7 @@ Value listunspent(const Array& params, bool fHelp)
 
     Array results;
     vector<COutput> vecOutputs;
-    pwalletMain->AvailableCoins((unsigned int)GetAdjustedTime(), vecOutputs, false);
+    pwalletMain->AvailableCoins((unsigned int)GetAdjustedTime(), vecOutputs, false, false, true);
     BOOST_FOREACH(const COutput& out, vecOutputs)
     {
         if (out.nDepth < nMinDepth || out.nDepth > nMaxDepth)
@@ -3282,14 +3284,13 @@ static const CRPCCommand vRPCCommands[] =
     { "makekeypair",            &makekeypair,            false},
     { "sendalert",              &sendalert,              false},
     { "listunspent",            &listunspent,            false},
+    { "addcoldmintingaddress",  &addcoldmintingaddress,  false},
     { "getrawtransaction",      &getrawtransaction,      false},
     { "createrawtransaction",   &createrawtransaction,   false},
     { "decoderawtransaction",   &decoderawtransaction,   false},
     { "signrawtransaction",     &signrawtransaction,     false},
     { "sendrawtransaction",     &sendrawtransaction,     false},
     { "getrawmempool",          &getrawmempool,          true },
-    { "generatestake",          &generatestake,          true },
-    { "addcoldmintingaddress",  &addcoldmintingaddress,  false},
 };
 
 CRPCTable::CRPCTable()
@@ -3936,8 +3937,6 @@ Array RPCConvertValues(const std::string &strMethod, const std::vector<std::stri
     if (strMethod == "signrawtransaction"     && n > 1) ConvertTo<Array>(params[1]);
     if (strMethod == "signrawtransaction"     && n > 2) ConvertTo<Array>(params[2]);
     if (strMethod == "sendrawtransaction"     && n > 1) ConvertTo<boost::int64_t>(params[1]);
-
-    if (strMethod == "generatestake"          && n > 0) ConvertTo<boost::int64_t>(params[0]);
     return params;
 }
 

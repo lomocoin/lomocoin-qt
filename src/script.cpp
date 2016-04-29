@@ -87,8 +87,9 @@ const char* GetTxnOutputType(txnouttype t)
     case TX_PUBKEYHASH: return "pubkeyhash";
     case TX_SCRIPTHASH: return "scripthash";
     case TX_MULTISIG: return "multisig";
-    case TX_COLDMINTING: return "coldminting";
     case TX_NULL_DATA: return "nulldata";
+    case TX_COLDMINTING: return "coldminting";
+    case TX_MULTISIGCOLDMINTING: return "multisigcoldminting";
     }
     return NULL;
 }
@@ -225,9 +226,8 @@ const char* GetOpName(opcodetype opcode)
     case OP_NOP9                   : return "OP_NOP9";
     case OP_NOP10                  : return "OP_NOP10";
 
-    // peercoin
+    // coldminting
     case OP_COINSTAKE              : return "OP_COINSTAKE";
-
 
     // template matching params
     case OP_PUBKEYHASH             : return "OP_PUBKEYHASH";
@@ -322,7 +322,7 @@ bool EvalScript(vector<vector<unsigned char> >& stack, const CScript& script, co
 
                 case OP_COINSTAKE:
                 {
-                    CBigNum bn(txTo.IsCoinStake() ? 1 : 0);
+                    CBigNum bn(txTo.IsConsistentCoinStake(script) ? 1 : 0);
                     stack.push_back(bn.getvch());
                 }
                 break;
@@ -1224,8 +1224,13 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, vector<vector<unsi
 
         // Sender provides N pubkeys, receivers provides M signatures
         mTemplates.insert(make_pair(TX_MULTISIG, CScript() << OP_SMALLINTEGER << OP_PUBKEYS << OP_SMALLINTEGER << OP_CHECKMULTISIG));
-        // ppcoin: Cold minting script
+
+        // Cold minting script
         mTemplates.insert(make_pair(TX_COLDMINTING, CScript() << OP_DUP << OP_HASH160 << OP_COINSTAKE << OP_IF << OP_PUBKEYHASH << OP_ELSE << OP_PUBKEYHASH << OP_ENDIF << OP_EQUALVERIFY << OP_CHECKSIG));
+
+        // Multisig Cold minting script
+        mTemplates.insert(make_pair(TX_MULTISIGCOLDMINTING, CScript() << OP_COINSTAKE << OP_IF << OP_DUP << OP_HASH160 << OP_PUBKEYHASH << OP_EQUALVERIFY << OP_CHECKSIG << OP_ELSE << OP_SMALLINTEGER << OP_PUBKEYS << OP_SMALLINTEGER << OP_CHECKMULTISIG << OP_ENDIF));
+
         // Empty, provably prunable, data-carrying output
         mTemplates.insert(make_pair(TX_NULL_DATA, CScript() << OP_RETURN << OP_SMALLDATA));
         mTemplates.insert(make_pair(TX_NULL_DATA, CScript() << OP_RETURN));
@@ -1266,6 +1271,14 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, vector<vector<unsi
                     unsigned char m = vSolutionsRet.front()[0];
                     unsigned char n = vSolutionsRet.back()[0];
                     if (m < 1 || n < 1 || m > n || vSolutionsRet.size()-2 != n)
+                        return false;
+                }
+                else if (typeRet == TX_MULTISIGCOLDMINTING)
+                {
+                    // Additional checks for TX_MULTISIGCOLDMINTING:
+                    unsigned char m = vSolutionsRet[1][0];
+                    unsigned char n = vSolutionsRet.back()[0];
+                    if (m < 1 || n < 1 || m > n || vSolutionsRet.size()-3 != n)
                         return false;
                 }
                 return true;
@@ -1406,6 +1419,7 @@ bool Solver(const CKeyStore& keystore, const CScript& scriptPubKey, uint256 hash
     case TX_MULTISIG:
         scriptSigRet << OP_0; // workaround CHECKMULTISIG bug
         return (SignN(vSolutions, keystore, hash, nHashType, scriptSigRet));
+
     case TX_COLDMINTING:
         keyID = CKeyID(uint160(vSolutions[fCoinStake ? 0 : 1]));
         if (Sign1(keyID, keystore, hash, nHashType, scriptSigRet))
@@ -1416,11 +1430,30 @@ bool Solver(const CKeyStore& keystore, const CScript& scriptPubKey, uint256 hash
             return true;
         }
         return false;
+    case TX_MULTISIGCOLDMINTING:
+        if (fCoinStake)
+        {
+            keyID = CKeyID(uint160(vSolutions[0]));
+            if (Sign1(keyID, keystore, hash, nHashType, scriptSigRet))
+            {
+                CPubKey vch;
+                keystore.GetPubKey(keyID, vch);
+                scriptSigRet << vch;
+                return true;
+            }
+            return false;
+        }
+        else
+        {
+            vector<valtype> vSolutions1(vSolutions.begin()+1,vSolutions.end());
+            scriptSigRet << OP_0; // workaround CHECKMULTISIG bug
+            return (SignN(vSolutions1, keystore, hash, nHashType, scriptSigRet));
+        }
     }
     return false;
 }
 
-int ScriptSigArgsExpected(txnouttype t, const std::vector<std::vector<unsigned char> >& vSolutions)
+int ScriptSigArgsExpected(txnouttype t, const std::vector<std::vector<unsigned char> >& vSolutions, bool fCoinStake)
 {
     switch (t)
     {
@@ -1432,6 +1465,17 @@ int ScriptSigArgsExpected(txnouttype t, const std::vector<std::vector<unsigned c
     case TX_PUBKEYHASH:
     case TX_COLDMINTING:
         return 2;
+    case TX_MULTISIGCOLDMINTING:
+        if (fCoinStake)
+        {
+            return 2;
+        }
+        else
+        {
+            if (vSolutions.size() <= 1 || vSolutions[1].size() < 1)
+                return -1;
+            return vSolutions[1][0] + 1;
+        }
     case TX_MULTISIG:
         if (vSolutions.size() < 1 || vSolutions[0].size() < 1)
             return -1;
@@ -1458,7 +1502,16 @@ bool IsStandard(const CScript& scriptPubKey, txnouttype& whichType)
         if (m < 1 || m > n)
             return false;
     }
-
+    else if (whichType == TX_MULTISIGCOLDMINTING)
+    {
+        unsigned char m = vSolutions[1][0];
+        unsigned char n = vSolutions.back()[0];
+        // Support up to x-of-3 multisig txns as standard
+        if (n < 1 || n > 3)
+            return false;
+        if (m < 1 || m > n)
+            return false;
+    }
     return whichType != TX_NONSTANDARD;
 }
 
@@ -1533,11 +1586,52 @@ bool IsMine(const CKeyStore &keystore, const CScript& scriptPubKey)
         CKeyID spendingKeyID = CKeyID(uint160(vSolutions[1]));
         return keystore.HaveKey(spendingKeyID);
     }
+    case TX_MULTISIGCOLDMINTING:
+    {
+        // Only consider transactions "mine" if we own ALL the
+        // keys involved. multi-signature transactions that are
+        // partially owned (somebody else has a key that can spend
+        // them) enable spend-out-from-under-you attacks, especially
+        // in shared-wallet situations.
+        vector<valtype> keys(vSolutions.begin()+2, vSolutions.begin()+vSolutions.size()-1);
+        return HaveKeys(keys, keystore) == keys.size();
+    }
     }
     return false;
 }
 
- 
+bool IsMineForMultiSig(const CKeyStore &keystore, const CScript& scriptPubKey)
+{
+    vector<valtype> vSolutions;
+    txnouttype whichType;
+    if (!Solver(scriptPubKey, whichType, vSolutions))
+        return false;
+
+    CKeyID keyID;
+    switch (whichType)
+    {
+    case TX_SCRIPTHASH:
+    {
+        CScript subscript;
+        if (!keystore.GetCScript(CScriptID(uint160(vSolutions[0])), subscript))
+            return false;
+        return IsMineForMultiSig(keystore, subscript);
+    }
+    case TX_MULTISIG:
+    {
+        vector<valtype> keys(vSolutions.begin()+1, vSolutions.begin()+vSolutions.size()-1);
+        return HaveKeys(keys, keystore) != 0;
+    }
+    case TX_MULTISIGCOLDMINTING:
+    {
+        vector<valtype> keys(vSolutions.begin()+2, vSolutions.begin()+vSolutions.size()-1);
+        return HaveKeys(keys, keystore) != 0;
+    }
+    default:
+        return false;
+    }
+}
+
 bool IsMineForMintingOnly(const CKeyStore &keystore, const CScript& scriptPubKey)
 {
     vector<valtype> vSolutions;
@@ -1559,6 +1653,11 @@ bool IsMineForMintingOnly(const CKeyStore &keystore, const CScript& scriptPubKey
         CKeyID mintingKeyID = CKeyID(uint160(vSolutions[0]));
         CKeyID spendingKeyID = CKeyID(uint160(vSolutions[1]));
         return keystore.HaveKey(mintingKeyID) && !keystore.HaveKey(spendingKeyID);
+    }
+    case TX_MULTISIGCOLDMINTING:
+    {
+        CKeyID mintingKeyID = CKeyID(uint160(vSolutions[0]));
+        return keystore.HaveKey(mintingKeyID);
     }
     default:
         return false;
@@ -1607,6 +1706,15 @@ bool ExtractDestinations(const CScript& scriptPubKey, txnouttype& typeRet, vecto
     {
         nRequiredRet = vSolutions.front()[0];
         for (unsigned int i = 1; i < vSolutions.size()-1; i++)
+        {
+            CTxDestination address = CPubKey(vSolutions[i]).GetID();
+            addressRet.push_back(address);
+        }
+    }
+    else if (typeRet == TX_MULTISIGCOLDMINTING)
+    {
+        nRequiredRet = vSolutions[1][0];
+        for (unsigned int i = 2; i < vSolutions.size()-1; i++)
         {
             CTxDestination address = CPubKey(vSolutions[i]).GetID();
             addressRet.push_back(address);
@@ -1827,9 +1935,56 @@ static CScript CombineSignatures(CScript scriptPubKey, const CTransaction& txTo,
         }
     case TX_MULTISIG:
         return CombineMultisig(scriptPubKey, txTo, nIn, vSolutions, sigs1, sigs2);
+    case TX_MULTISIGCOLDMINTING:
+        if (txTo.IsCoinStake())
+        {
+            if (sigs1.empty() || sigs1[0].empty())
+                return PushAll(sigs2);
+            return PushAll(sigs1);
+        }
+        else 
+        {
+            vector<valtype> vSolutions1(vSolutions.begin()+1,vSolutions.end());
+            return CombineMultisig(scriptPubKey, txTo, nIn, vSolutions1, sigs1, sigs2);
+        }
     }
 
     return CScript();
+}
+
+void CScript::SetColdMinting(const CKeyID& mintingKey, const CKeyID& spendingKey)
+{
+    clear();
+
+    *this
+        << OP_DUP
+        << OP_HASH160
+        << OP_COINSTAKE
+        << OP_IF
+        << mintingKey
+        << OP_ELSE
+        << spendingKey
+        << OP_ENDIF
+        << OP_EQUALVERIFY
+        << OP_CHECKSIG;
+}
+
+void CScript::SetMultisigColdMinting(const CKeyID& mintingKey, const CScript& spendingScript)
+{
+    clear();
+
+    *this
+        << OP_COINSTAKE
+        << OP_IF
+        << OP_DUP
+        << OP_HASH160
+        << mintingKey
+        << OP_EQUALVERIFY
+        << OP_CHECKSIG
+        << OP_ELSE;
+    *this += spendingScript;
+    *this
+        << OP_ENDIF;
 }
 
 CScript CombineSignatures(CScript scriptPubKey, const CTransaction& txTo, unsigned int nIn,
@@ -1943,21 +2098,3 @@ void CScript::SetMultisig(int nRequired, const std::vector<CKey>& keys)
         *this << key.GetPubKey();
     *this << EncodeOP_N(keys.size()) << OP_CHECKMULTISIG;
 }
-
-void CScript::SetColdMinting(const CKeyID& mintingKey, const CKeyID& spendingKey)
-{
-    clear();
-
-    *this
-        << OP_DUP
-        << OP_HASH160
-        << OP_COINSTAKE
-        << OP_IF
-        << mintingKey
-        << OP_ELSE
-        << spendingKey
-        << OP_ENDIF
-        << OP_EQUALVERIFY
-        << OP_CHECKSIG;
-}
-

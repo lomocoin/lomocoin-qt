@@ -113,19 +113,11 @@ public:
 
     CPubKey vchDefaultKey;
 
-    std::set<COutPoint> setLockedCoins;
-
     // check whether we are allowed to upgrade (or already support) to the named feature
     bool CanSupportFeature(enum WalletFeature wf) { return nWalletMaxVersion >= wf; }
 
-    void AvailableCoins(unsigned int nSpendTime, std::vector<COutput>& vCoins, bool fOnlyConfirmed=true, bool fMintingOnly=false) const;
+    void AvailableCoins(unsigned int nSpendTime, std::vector<COutput>& vCoins, bool fOnlyConfirmed=true, bool fMintingOnly=false, bool fMultiSig=false) const;
     bool SelectCoinsMinConf(int64 nTargetValue, int nConfMine, int nConfTheirs, std::vector<COutput> vCoins, std::set<std::pair<const CWalletTx*,unsigned int> >& setCoinsRet, int64& nValueRet) const;
-
-    bool IsLockedCoin(uint256 hash, unsigned int n) const;
-    void LockCoin(COutPoint& output);
-    void UnlockCoin(COutPoint& output);
-    void UnlockAllCoins();
-    void ListLockedCoins(std::vector<COutPoint>& vOutpts);
 
     // keystore implementation
     // Generate a new key
@@ -158,9 +150,11 @@ public:
     void ReacceptWalletTransactions();
     void ResendWalletTransactions();
     int64 GetBalance() const;
+    int64 GetBalance(const CTxDestination &destAddress, bool fMintingOnly = false) const;
     int64 GetMintingOnlyBalance() const;
     int64 GetUnconfirmedBalance() const;
     int64 GetStake() const;
+    int64 GetStake(const CTxDestination &destAddress) const;
     int64 GetNewMint() const;
     bool CreateTransaction(const std::vector<std::pair<CScript, int64> >& vecSend, CWalletTx& wtxNew, CReserveKey& reservekey, int64& nFeeRet);
     bool CreateTransaction(CScript scriptPubKey, int64 nValue, CWalletTx& wtxNew, CReserveKey& reservekey, int64& nFeeRet);
@@ -191,6 +185,16 @@ public:
             throw std::runtime_error("CWallet::GetCredit() : value out of range");
         return (IsMine(txout) ? txout.nValue : 0);
     }
+    bool IsMineForMultiSig(const CTxOut& txout) const
+    {
+        return ::IsMineForMultiSig(*this, txout.scriptPubKey);
+    }
+    int64 GetMultiSigCredit(const CTxOut& txout) const
+    {
+        if (!MoneyRange(txout.nValue))
+            throw std::runtime_error("CWallet::GetMultiSigCredit() : value out of range");
+        return (IsMineForMultiSig(txout) ? txout.nValue : 0);
+    }
     bool IsMineForMintingOnly(const CTxOut& txout) const
     {
         return ::IsMineForMintingOnly(*this, txout.scriptPubKey);
@@ -212,6 +216,13 @@ public:
     {
         BOOST_FOREACH(const CTxOut& txout, tx.vout)
             if (IsMine(txout))
+                return true;
+        return false;
+    }
+    bool IsMineForMultiSig(const CTransaction& tx) const
+    {
+        BOOST_FOREACH(const CTxOut& txout, tx.vout)
+            if (IsMineForMultiSig(txout))
                 return true;
         return false;
     }

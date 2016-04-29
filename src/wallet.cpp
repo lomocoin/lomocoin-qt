@@ -301,7 +301,8 @@ void CWallet::WalletUpdateSpent(const CTransaction &tx)
             if (mi != mapWallet.end())
             {
                 CWalletTx& wtx = (*mi).second;
-                if (!wtx.IsSpent(txin.prevout.n) && (IsMine(wtx.vout[txin.prevout.n]) || IsMineForMintingOnly(wtx.vout[txin.prevout.n])))
+                if (!wtx.IsSpent(txin.prevout.n) && (IsMine(wtx.vout[txin.prevout.n]) || IsMineForMintingOnly(wtx.vout[txin.prevout.n])
+                                                     || IsMineForMultiSig(wtx.vout[txin.prevout.n])))
                 {
                     printf("WalletUpdateSpent found spent coin %sppc %s\n", FormatMoney(wtx.GetCredit()).c_str(), wtx.GetHash().ToString().c_str());
                     wtx.MarkSpent(txin.prevout.n);
@@ -413,7 +414,7 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransaction& tx, const CBlock* pbl
         LOCK(cs_wallet);
         bool fExisted = mapWallet.count(hash);
         if (fExisted && !fUpdate) return false;
-        if (fExisted || IsMine(tx) || IsFromMe(tx) || IsMineForMintingOnly(tx))
+        if (fExisted || IsMine(tx) || IsFromMe(tx) || IsMineForMintingOnly(tx) || IsMineForMultiSig(tx))
         {
             CWalletTx wtx(this,tx);
             // Get merkle branch if transaction was found in a block
@@ -899,7 +900,22 @@ int64 CWallet::GetBalance() const
     return nTotal;
 }
 
- 
+int64 CWallet::GetBalance(const CTxDestination &destAddress,bool fMintingOnly) const
+{
+    int64 nTotal = 0;
+    vector<COutput> vecOutputs;
+    AvailableCoins((unsigned int)GetAdjustedTime(), vecOutputs, true, fMintingOnly, true);
+    BOOST_FOREACH(const COutput& out, vecOutputs)
+    {
+        CTxDestination address;
+        const CWalletTx *pcoin = out.tx;
+        if(ExtractDestination(pcoin->vout[out.i].scriptPubKey,address) && address == destAddress)
+            nTotal += pcoin->vout[out.i].nValue;
+    }
+
+    return nTotal;
+}
+
 int64 CWallet::GetMintingOnlyBalance() const
 {
     int64 nTotal = 0;
@@ -912,6 +928,7 @@ int64 CWallet::GetMintingOnlyBalance() const
                 nTotal += pcoin->GetAvailableCreditForMintingOnly();
         }
     }
+
     return nTotal;
 }
 
@@ -948,6 +965,25 @@ int64 CWallet::GetStake() const
     return nTotal;
 }
 
+// lomocoin: total coins staked (non-spendable until maturity)
+int64 CWallet::GetStake(const CTxDestination &destAddress) const
+{
+    int64 nTotal = 0;
+    LOCK(cs_wallet);
+    for (map<uint256, CWalletTx>::const_iterator it = mapWallet.begin(); it != mapWallet.end(); ++it)
+    {
+        const CWalletTx* pcoin = &(*it).second;
+        if (pcoin->IsCoinStake() && pcoin->GetBlocksToMaturity() > 0 && pcoin->GetDepthInMainChain() > 0)
+        {
+            CTxDestination address;
+            for (int i = 0;i < pcoin->vout.size();i++)
+                if (ExtractDestination(pcoin->vout[i].scriptPubKey, address) && address == destAddress)
+                    nTotal += pcoin->vout[i].nValue;
+        }
+    }
+    return nTotal;
+}
+
 int64 CWallet::GetNewMint() const
 {
     int64 nTotal = 0;
@@ -962,7 +998,8 @@ int64 CWallet::GetNewMint() const
 }
 
 // populate vCoins with vector of spendable (age, (value, (transaction, output_number))) outputs
-void CWallet::AvailableCoins(unsigned int nSpendTime, vector<COutput>& vCoins, bool fOnlyConfirmed, bool fMintingOnly) const
+void CWallet::AvailableCoins(unsigned int nSpendTime, vector<COutput>& vCoins, bool fOnlyConfirmed, 
+                             bool fMintingOnly, bool fMultiSig) const
 {
     vCoins.clear();
 
@@ -986,10 +1023,10 @@ void CWallet::AvailableCoins(unsigned int nSpendTime, vector<COutput>& vCoins, b
                 if (pcoin->nTime > nSpendTime)
                     continue;  // lomocoin: timestamp must not exceed spend time
 
- //               if (!(pcoin->IsSpent(i)) && IsMine(pcoin->vout[i]) && pcoin->vout[i].nValue > 0)
-                  if (!(pcoin->IsSpent(i)) &&
-                     (fMintingOnly ? IsMineForMintingOnly(pcoin->vout[i]) : IsMine(pcoin->vout[i])) &&
-                     !IsLockedCoin((*it).first, i) && pcoin->vout[i].nValue > 0)
+                if (!(pcoin->IsSpent(i))
+                    && (fMintingOnly ? IsMineForMintingOnly(pcoin->vout[i]) :
+                       (IsMine(pcoin->vout[i]) || (fMultiSig && (IsMineForMultiSig(pcoin->vout[i])))))
+                    && pcoin->vout[i].nValue > 0)
                     vCoins.push_back(COutput(pcoin, i, pcoin->GetDepthInMainChain()));
             }
         }
@@ -1321,8 +1358,6 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
     set<pair<const CWalletTx*,unsigned int> > setCoins;
     vector<const CWalletTx*> vwtxPrev;
     int64 nValueIn = 0;
-    if (!SelectCoins(nBalance - nReserveBalance, txNew.nTime, setCoins, nValueIn))
-        return false;
     if (nBalance > nReserveBalance)
     {
         if (!SelectCoins(nBalance - nReserveBalance, txNew.nTime, setCoins, nValueIn))
@@ -1335,6 +1370,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
             return false;
         nValueIn += nMintingOnlyValueIn;
     }
+
     if (setCoins.empty())
         return false;
     int64 nCredit = 0;
@@ -1379,7 +1415,6 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
                 }
                 if (fDebug && GetBoolArg("-printcoinstake"))
                     printf("CreateCoinStake : parsed kernel type=%d\n", whichType);
- //               if (whichType != TX_PUBKEY && whichType != TX_PUBKEYHASH)
                 txnouttype subType = TX_NONSTANDARD;
                 if (whichType == TX_SCRIPTHASH)
                 {
@@ -1399,16 +1434,14 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
                     if (fDebug && GetBoolArg("-printcoinstake"))
                         printf("CreateCoinStake : parsed sub script kernel type=%d\n", whichType);
                 }
-                if (whichType != TX_PUBKEY && whichType != TX_PUBKEYHASH && subType != TX_COLDMINTING)                
+                if (whichType != TX_PUBKEY && whichType != TX_PUBKEYHASH
+                     && subType != TX_COLDMINTING && subType != TX_MULTISIGCOLDMINTING)
                 {
                     if (fDebug && GetBoolArg("-printcoinstake"))
                         printf("CreateCoinStake : no support for kernel type=%d (subtype=%d)\n", whichType, subType);
                     break;  // only support pay to public key, pay to address and cold minting
                 }
-                fMintingOnly = (subType == TX_COLDMINTING);
-                if (fMintingOnly && !IsProtocolV05(txNew.nTime - n))
-                    break; // Cold minting will not be accepted yet
-
+                fMintingOnly = (subType == TX_COLDMINTING || subType == TX_MULTISIGCOLDMINTING);
                 if (whichType == TX_PUBKEYHASH) // pay to address type
                 {
                     // convert to pay to public key type
@@ -1935,7 +1968,7 @@ void CWallet::FixSpentCoins(int& nMismatchFound, int64& nBalanceInQuestion, bool
 // lomocoin: disable transaction (only for coinstake)
 void CWallet::DisableTransaction(const CTransaction &tx)
 {
-    if (!tx.IsCoinStake() || !IsFromMe(tx))
+    if (!tx.IsCoinStake() || !(IsFromMe(tx) || IsMineForMintingOnly(tx) || IsMineForMultiSig(tx)))
         return; // only disconnecting coinstake requires marking input unspent
 
     LOCK(cs_wallet);
@@ -1945,7 +1978,10 @@ void CWallet::DisableTransaction(const CTransaction &tx)
         if (mi != mapWallet.end())
         {
             CWalletTx& prev = (*mi).second;
-            if (txin.prevout.n < prev.vout.size() && IsMine(prev.vout[txin.prevout.n]))
+            if (txin.prevout.n < prev.vout.size()
+                && (IsMine(prev.vout[txin.prevout.n])
+                     || IsMineForMintingOnly(prev.vout[txin.prevout.n])
+                     || IsMineForMultiSig(prev.vout[txin.prevout.n])))
             {
                 prev.MarkUnspent(txin.prevout.n);
                 prev.WriteToDisk();
@@ -2007,36 +2043,3 @@ void CWallet::GetAllReserveKeys(set<CKeyID>& setAddress)
         setAddress.insert(keyID);
     }
 }
-
-
-void CWallet::LockCoin(COutPoint& output)
-{
-    setLockedCoins.insert(output);
-}
-
-void CWallet::UnlockCoin(COutPoint& output)
-{
-    setLockedCoins.erase(output);
-}
-
-void CWallet::UnlockAllCoins()
-{
-    setLockedCoins.clear();
-}
-
-bool CWallet::IsLockedCoin(uint256 hash, unsigned int n) const
-{
-    COutPoint outpt(hash, n);
-
-    return (setLockedCoins.count(outpt) > 0);
-}
-
-void CWallet::ListLockedCoins(std::vector<COutPoint>& vOutpts)
-{
-    for (std::set<COutPoint>::iterator it = setLockedCoins.begin();
-         it != setLockedCoins.end(); it++) {
-        COutPoint outpt = (*it);
-        vOutpts.push_back(outpt);
-    }
-}
-

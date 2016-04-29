@@ -92,8 +92,6 @@ extern CCriticalSection cs_setpwalletRegistered;
 extern std::set<CWallet*> setpwalletRegistered;
 extern std::map<uint256, CBlock*> mapOrphanBlocks;
 
-extern uint256 hashSingleStakeBlock;
-
 // Settings
 extern int64 nTransactionFee;
 
@@ -130,7 +128,7 @@ bool IsInitialBlockDownload();
 std::string GetWarnings(std::string strFor);
 uint256 WantedByOrphan(const CBlock* pblockOrphan);
 const CBlockIndex* GetLastBlockIndex(const CBlockIndex* pindex, bool fProofOfStake);
-void BitcoinMiner(CWallet *pwallet, bool fProofOfStake, bool fGenerateSingleBlock = false, int nTimeout = 0);
+void BitcoinMiner(CWallet *pwallet, bool fProofOfStake);
 bool GetTransaction(const uint256 &hash, CTransaction &tx, uint256 &hashBlock);
 
 
@@ -535,6 +533,11 @@ public:
         // lomocoin: the coin stake transaction is marked with the first output empty
         return (vin.size() > 0 && (!vin[0].prevout.IsNull()) && vout.size() >= 2 && vout[0].IsEmpty());
     }
+
+    bool IsConsistentCoinStake(const CScript& script) const;
+    /** Check for consistency from vins to vouts
+       @return True if all inputs and outputs use same pubkey
+    */
 
     /** Check for standard transaction types
         @return True if all outputs (scriptPubKeys) use only standard transaction forms
