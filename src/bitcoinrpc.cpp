@@ -3220,6 +3220,81 @@ Value getrawmempool(const Array& params, bool fHelp)
     return a;
 }
 
+Value createsendfromaddress(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() < 2 || params.size() > 3)
+        throw runtime_error(
+            "createsendfromaddress <fromaddress> {address:amount,...} <fee>\n"
+            "Create a transaction spending from given address,\n"
+            "sending to given address(es).\n"
+            "Returns hex-encoded raw transaction.\n"
+            "Note that the transaction's inputs are not signed, and\n"
+            "it is not stored in the wallet or transmitted to the network.");
+
+    CBitcoinAddress fromAddress(params[0].get_str());
+    Object sendTo = params[1].get_obj();
+
+    int64 nFee = nTransactionFee;
+    if (params.size() == 3)
+    {
+        nFee = AmountFromValue(params[2]);
+        nFee = (nFee / CENT) * CENT;  // round to cent
+    }
+
+    CTransaction rawTx;
+    int64 nValueOut = 0;
+    set<CBitcoinAddress> setAddress;
+    BOOST_FOREACH(const Pair& s, sendTo)
+    {
+        CBitcoinAddress address(s.name_);
+        if (!address.IsValid())
+            throw JSONRPCError(-5, string("Invalid Bitcoin address: ")+s.name_);
+
+        if (setAddress.count(address))
+            throw JSONRPCError(-8, string("Invalid parameter, duplicated address: ")+s.name_);
+        setAddress.insert(address);
+
+        CScript scriptPubKey;
+        scriptPubKey.SetDestination(address.Get());
+        int64 nAmount = AmountFromValue(s.value_);
+        if (nAmount < MIN_TXOUT_AMOUNT)
+            throw JSONRPCError(-9, string("Invalid parameter, amount < MIN_TXOUT_AMOUNT"));
+        CTxOut out(nAmount, scriptPubKey);
+        rawTx.vout.push_back(out);
+        nValueOut += nAmount;
+    }
+    if (nValueOut == 0)
+        throw JSONRPCError(-10, string("Invalid parameter, total output = 0"));
+
+    if (!pwalletMain->CreateAddressTransaction(fromAddress.Get(),nValueOut,rawTx,nFee))
+        throw JSONRPCError(-11, string("failed to create transaction"));
+
+    CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
+    ss << rawTx;
+    return HexStr(ss.begin(), ss.end());    
+}
+
+Value getaddressinfo(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() != 1)
+        throw runtime_error(
+            "getaddressinfo <address>\n"
+            "Returns an object containing various state info for given address.");
+
+    CBitcoinAddress address(params[0].get_str());
+
+    if (!address.IsValid())
+        throw JSONRPCError(-5, string("Invalid Bitcoin address: ")+params[0].get_str());
+
+    const CTxDestination& destAddress = address.Get();
+
+    Object obj;
+    obj.push_back(Pair("balance",       ValueFromAmount(pwalletMain->GetBalance(destAddress,false))));
+    obj.push_back(Pair("mintingonly",   ValueFromAmount(pwalletMain->GetBalance(destAddress,true))));
+    obj.push_back(Pair("stake",         ValueFromAmount(pwalletMain->GetStake(destAddress))));
+    return obj;
+}
+
 //
 // Call Table
 //
@@ -3291,6 +3366,8 @@ static const CRPCCommand vRPCCommands[] =
     { "signrawtransaction",     &signrawtransaction,     false},
     { "sendrawtransaction",     &sendrawtransaction,     false},
     { "getrawmempool",          &getrawmempool,          true },
+    { "createsendfromaddress",  &createsendfromaddress,  false },
+    { "getaddressinfo",         &getaddressinfo,         true },
 };
 
 CRPCTable::CRPCTable()
@@ -3937,6 +4014,8 @@ Array RPCConvertValues(const std::string &strMethod, const std::vector<std::stri
     if (strMethod == "signrawtransaction"     && n > 1) ConvertTo<Array>(params[1]);
     if (strMethod == "signrawtransaction"     && n > 2) ConvertTo<Array>(params[2]);
     if (strMethod == "sendrawtransaction"     && n > 1) ConvertTo<boost::int64_t>(params[1]);
+    if (strMethod == "createsendfromaddress"  && n > 1) ConvertTo<Object>(params[1]);
+    if (strMethod == "createsendfromaddress"  && n > 2) ConvertTo<double>(params[2]);
     return params;
 }
 

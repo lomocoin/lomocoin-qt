@@ -1169,6 +1169,27 @@ bool CWallet::SelectCoins(int64 nTargetValue, unsigned int nSpendTime, set<pair<
             SelectCoinsMinConf(nTargetValue, 0, 1, vCoins, setCoinsRet, nValueRet));
 }
 
+bool CWallet::SelectAddressCoins(CTxDestination& destAddress,int64 nTargetValue, unsigned int nSpendTime, set<pair<const CWalletTx*,unsigned int> >& setCoinsRet, int64& nValueRet) const
+{
+    vector<COutput> vCoins,vAddrCoins;
+    AvailableCoins(nSpendTime, vCoins, true, false, true);
+
+    vAddrCoins.clear();
+
+    BOOST_FOREACH(COutput output, vCoins)
+    {
+        CTxDestination address;
+        const CWalletTx *pcoin = output.tx;
+        if(ExtractDestination(pcoin->vout[output.i].scriptPubKey,address) && address == destAddress)
+        {
+            vAddrCoins.push_back(output);
+        }
+    }
+
+    return (SelectCoinsMinConf(nTargetValue, 1, 6, vAddrCoins, setCoinsRet, nValueRet) ||
+            SelectCoinsMinConf(nTargetValue, 1, 1, vAddrCoins, setCoinsRet, nValueRet) ||
+            SelectCoinsMinConf(nTargetValue, 0, 1, vAddrCoins, setCoinsRet, nValueRet));
+}
 
 bool CWallet::SelectMintingOnlyCoins(unsigned int nSpendTime, set<pair<const CWalletTx*,unsigned int> >& setCoinsRet, int64& nValueRet) const
 {
@@ -1327,6 +1348,38 @@ bool CWallet::CreateTransaction(CScript scriptPubKey, int64 nValue, CWalletTx& w
     vector< pair<CScript, int64> > vecSend;
     vecSend.push_back(make_pair(scriptPubKey, nValue));
     return CreateTransaction(vecSend, wtxNew, reservekey, nFeeRet);
+}
+
+bool CWallet::CreateAddressTransaction(CTxDestination FromAddress,int64 nValue,CTransaction& TxNew, int64 nPayFee)
+{
+    int64 nTotalValue = nValue + max(nPayFee, nTransactionFee);
+    {
+        LOCK2(cs_main, cs_wallet);
+        {
+            // Choose coins to use
+            set<pair<const CWalletTx*,unsigned int> > setCoins;
+            int64 nValueIn = 0;
+            if (!SelectAddressCoins(FromAddress,nTotalValue, TxNew.nTime, setCoins, nValueIn)
+                || setCoins.size() == 0)
+                return false;
+
+            int64 nChange = nValueIn - nTotalValue;            
+
+            BOOST_FOREACH(const PAIRTYPE(const CWalletTx*,unsigned int)& coin, setCoins)
+            {
+                TxNew.vin.push_back(CTxIn(coin.first->GetHash(),coin.second));
+            }
+            
+            if (nChange >= MIN_TXOUT_AMOUNT)
+            {
+                // Insert change txn at random position:
+                CScript scriptChange;
+                scriptChange.SetDestination(FromAddress);
+                TxNew.vout.push_back(CTxOut(nChange, scriptChange));
+            }
+        }
+    }
+    return true;
 }
 
 // lomocoin: create coin stake transaction
