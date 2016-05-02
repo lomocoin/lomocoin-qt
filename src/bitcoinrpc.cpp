@@ -2793,6 +2793,21 @@ Value getrawtransaction(const Array& params, bool fHelp)
     return result;
 }
 
+Value purgependingtx(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() < 1 || params.size() > 2)
+        throw runtime_error(
+            "purgependingtx <txid>\n"
+            );
+    uint256 hash;
+    hash.SetHex(params[0].get_str());
+
+    BOOST_FOREACH(CWallet* pwallet, setpwalletRegistered)
+        pwallet->EraseFromWallet(hash);
+
+    return params[0].get_str();
+}
+
 Value listunspent(const Array& params, bool fHelp)
 {
     if (fHelp || params.size() > 3)
@@ -3361,6 +3376,7 @@ static const CRPCCommand vRPCCommands[] =
     { "listunspent",            &listunspent,            false},
     { "addcoldmintingaddress",  &addcoldmintingaddress,  false},
     { "getrawtransaction",      &getrawtransaction,      false},
+    { "purgependingtx",     	&purgependingtx,      	 false},
     { "createrawtransaction",   &createrawtransaction,   false},
     { "decoderawtransaction",   &decoderawtransaction,   false},
     { "signrawtransaction",     &signrawtransaction,     false},
@@ -4009,6 +4025,7 @@ Array RPCConvertValues(const std::string &strMethod, const std::vector<std::stri
     if (strMethod == "listunspent"            && n > 1) ConvertTo<boost::int64_t>(params[1]);
     if (strMethod == "listunspent"            && n > 2) ConvertTo<Array>(params[2]);
     if (strMethod == "getrawtransaction"      && n > 1) ConvertTo<boost::int64_t>(params[1]);
+    if (strMethod == "purgependingtx"      	  && n > 1) ConvertTo<boost::int64_t>(params[1]);
     if (strMethod == "createrawtransaction"   && n > 0) ConvertTo<Array>(params[0]);
     if (strMethod == "createrawtransaction"   && n > 1) ConvertTo<Object>(params[1]);
     if (strMethod == "signrawtransaction"     && n > 1) ConvertTo<Array>(params[1]);
