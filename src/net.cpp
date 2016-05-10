@@ -1001,7 +1001,7 @@ void MapPort(bool /* unused fMapPort */)
 // The second name should resolve to a list of seed addresses.
 // testnet dns seed begins with 't', all else are lomocoin dns seeds.
 static const char *strDNSSeed[][2] = {
-      {"seed", "seed.lomocoin.com"},
+    {"seed", "seed.lomocoin.com"},
 };
 
 void ThreadDNSAddressSeed(void* parg)

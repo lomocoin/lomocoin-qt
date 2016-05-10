@@ -891,7 +891,7 @@ int64 CWallet::GetBalance() const
         for (map<uint256, CWalletTx>::const_iterator it = mapWallet.begin(); it != mapWallet.end(); ++it)
         {
             const CWalletTx* pcoin = &(*it).second;
-            if (!pcoin->IsFinal() || !pcoin->IsConfirmed())
+            if (!pcoin->IsFinal() || !pcoin->IsConfirmed() || pcoin->IsFrozen())
                 continue;
             nTotal += pcoin->GetAvailableCredit();
         }
@@ -909,6 +909,8 @@ int64 CWallet::GetBalance(const CTxDestination &destAddress,bool fMintingOnly) c
     {
         CTxDestination address;
         const CWalletTx *pcoin = out.tx;
+        if (pcoin->IsFrozen())
+            continue;
         if(ExtractDestination(pcoin->vout[out.i].scriptPubKey,address) && address == destAddress)
             nTotal += pcoin->vout[out.i].nValue;
     }
@@ -926,6 +928,66 @@ int64 CWallet::GetMintingOnlyBalance() const
             const CWalletTx* pcoin = &(*it).second;
             if (pcoin->IsConfirmed())
                 nTotal += pcoin->GetAvailableCreditForMintingOnly();
+        }
+    }
+
+    return nTotal;
+}
+
+int64 CWallet::GetFrozenBalance(map<unsigned int,int64>& frozenRet) const
+{
+    frozenRet.clear();
+
+    int64 nTotal = 0;
+    {
+        LOCK(cs_wallet);
+        for (map<uint256, CWalletTx>::const_iterator it = mapWallet.begin(); it != mapWallet.end(); ++it)
+        {
+            const CWalletTx* pcoin = &(*it).second;
+            if (!pcoin->IsFinal() || !pcoin->IsConfirmed() || !pcoin->IsFrozen())
+                continue;
+            int64 nCredit = pcoin->GetAvailableCredit();
+            map<unsigned int,int64>::iterator mi = frozenRet.find(pcoin->nLockTime);
+            if (mi != frozenRet.end())
+            {
+                (*mi).second += nCredit;
+            }
+            else 
+            {
+                frozenRet.insert(make_pair(pcoin->nLockTime,nCredit));
+            }
+
+            nTotal += pcoin->GetAvailableCredit();
+        }
+    }
+
+    return nTotal;
+}
+
+int64 CWallet::GetFrozenBalance(const CTxDestination &destAddress,map<unsigned int,int64>& frozenRet) const
+{
+    int64 nTotal = 0;
+    vector<COutput> vecOutputs;
+    AvailableCoins((unsigned int)GetAdjustedTime(), vecOutputs, true, false, true);
+    BOOST_FOREACH(const COutput& out, vecOutputs)
+    {
+        CTxDestination address;
+        const CWalletTx *pcoin = out.tx;
+        if (!pcoin->IsFrozen())
+            continue;
+        if(ExtractDestination(pcoin->vout[out.i].scriptPubKey,address) && address == destAddress)
+        {
+            int64 nCredit = pcoin->vout[out.i].nValue;
+            map<unsigned int,int64>::iterator mi = frozenRet.find(pcoin->nLockTime);
+            if (mi != frozenRet.end())
+            {
+                (*mi).second += nCredit;
+            }
+            else 
+            {
+                frozenRet.insert(make_pair(pcoin->nLockTime,nCredit));
+            }
+            nTotal += nCredit;        
         }
     }
 
@@ -1002,7 +1064,6 @@ void CWallet::AvailableCoins(unsigned int nSpendTime, vector<COutput>& vCoins, b
                              bool fMintingOnly, bool fMultiSig) const
 {
     vCoins.clear();
-
     {
         LOCK(cs_wallet);
         for (map<uint256, CWalletTx>::const_iterator it = mapWallet.begin(); it != mapWallet.end(); ++it)
@@ -1161,6 +1222,25 @@ bool CWallet::SelectCoinsMinConf(int64 nTargetValue, int nConfMine, int nConfThe
 
 bool CWallet::SelectCoins(int64 nTargetValue, unsigned int nSpendTime, set<pair<const CWalletTx*,unsigned int> >& setCoinsRet, int64& nValueRet) const
 {
+    vector<COutput> vCoins,vAvailCoins;
+    AvailableCoins(nSpendTime, vCoins);
+
+    vAvailCoins.clear();
+    BOOST_FOREACH(COutput output, vCoins)
+    {
+        if (!output.tx->IsFrozen())
+        {
+            vAvailCoins.push_back(output);
+        }
+    }
+
+    return (SelectCoinsMinConf(nTargetValue, 1, 6, vAvailCoins, setCoinsRet, nValueRet) ||
+            SelectCoinsMinConf(nTargetValue, 1, 1, vAvailCoins, setCoinsRet, nValueRet) ||
+            SelectCoinsMinConf(nTargetValue, 0, 1, vAvailCoins, setCoinsRet, nValueRet));
+}
+
+bool CWallet::SelectMintingCoins(int64 nTargetValue, unsigned int nSpendTime, set<pair<const CWalletTx*,unsigned int> >& setCoinsRet, int64& nValueRet) const
+{
     vector<COutput> vCoins;
     AvailableCoins(nSpendTime, vCoins);
 
@@ -1180,7 +1260,7 @@ bool CWallet::SelectAddressCoins(CTxDestination& destAddress,int64 nTargetValue,
     {
         CTxDestination address;
         const CWalletTx *pcoin = output.tx;
-        if(ExtractDestination(pcoin->vout[output.i].scriptPubKey,address) && address == destAddress)
+        if(ExtractDestination(pcoin->vout[output.i].scriptPubKey,address) && address == destAddress && !pcoin->IsFrozen())
         {
             vAddrCoins.push_back(output);
         }
@@ -1392,7 +1472,8 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
     scriptEmpty.clear();
     txNew.vout.push_back(CTxOut(0, scriptEmpty));
     // Choose coins to use
-    int64 nBalance = GetBalance();
+    map<unsigned int,int64> frozenCoins;
+    int64 nBalance = GetBalance() + GetFrozenBalance(frozenCoins);
     int64 nMintingOnlyBalance = GetMintingOnlyBalance();
     int64 nReserveBalance = 0;
     if (mapArgs.count("-reservebalance") && !ParseMoney(mapArgs["-reservebalance"], nReserveBalance))
@@ -1404,7 +1485,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
     int64 nValueIn = 0;
     if (nBalance > nReserveBalance)
     {
-        if (!SelectCoins(nBalance - nReserveBalance, txNew.nTime, setCoins, nValueIn))
+        if (!SelectMintingCoins(nBalance - nReserveBalance, txNew.nTime, setCoins, nValueIn))
             return false;
     }
     if (nMintingOnlyBalance > 0)
@@ -1503,6 +1584,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
 
                 txNew.nTime -= n; 
                 txNew.vin.push_back(CTxIn(pcoin.first->GetHash(), pcoin.second));
+                txNew.nLockTime = pcoin.first->nLockTime;
                 nCredit += pcoin.first->vout[pcoin.second].nValue;
                 vwtxPrev.push_back(pcoin.first);
                 txNew.vout.push_back(CTxOut(0, scriptPubKeyOut));
@@ -1522,8 +1604,8 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
     BOOST_FOREACH(PAIRTYPE(const CWalletTx*, unsigned int) pcoin, setCoins)
     {
         // Attempt to add more inputs
-        // Only add coins of the same key/address as kernel
-        if (txNew.vout.size() == 2 && ((pcoin.first->vout[pcoin.second].scriptPubKey == scriptPubKeyKernel || pcoin.first->vout[pcoin.second].scriptPubKey == txNew.vout[1].scriptPubKey))
+        // Only add coins of the same key/address as kernel and same nLockTime
+        if (txNew.vout.size() == 2 && ((pcoin.first->vout[pcoin.second].scriptPubKey == scriptPubKeyKernel || pcoin.first->vout[pcoin.second].scriptPubKey == txNew.vout[1].scriptPubKey) && pcoin.first->nLockTime == txNew.nLockTime)
             && pcoin.first->GetHash() != txNew.vin[0].prevout.hash)
         {
             // Stop adding more inputs if already too many inputs

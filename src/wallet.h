@@ -64,6 +64,7 @@ class CWallet : public CCryptoKeyStore
 {
 private:
     bool SelectCoins(int64 nTargetValue, unsigned int nSpendTime, std::set<std::pair<const CWalletTx*,unsigned int> >& setCoinsRet, int64& nValueRet) const;
+    bool SelectMintingCoins(int64 nTargetValue, unsigned int nSpendTime, std::set<std::pair<const CWalletTx*,unsigned int> >& setCoinsRet, int64& nValueRet) const;
     bool SelectAddressCoins(CTxDestination& destAddress,int64 nTargetValue, unsigned int nSpendTime, std::set<std::pair<const CWalletTx*,unsigned int> >& setCoinsRet, int64& nValueRet) const;
     bool SelectMintingOnlyCoins(unsigned int nSpendTime, std::set<std::pair<const CWalletTx*,unsigned int> >& setCoinsRet, int64& nValueRet) const;
  
@@ -154,6 +155,8 @@ public:
     int64 GetBalance() const;
     int64 GetBalance(const CTxDestination &destAddress, bool fMintingOnly = false) const;
     int64 GetMintingOnlyBalance() const;
+    int64 GetFrozenBalance(std::map<unsigned int,int64>& frozenRet) const;
+    int64 GetFrozenBalance(const CTxDestination &destAddress,std::map<unsigned int,int64>& frozenRet) const;
     int64 GetUnconfirmedBalance() const;
     int64 GetStake() const;
     int64 GetStake(const CTxDestination &destAddress) const;

@@ -493,7 +493,21 @@ public:
                 return false;
         return true;
     }
-
+    
+    bool IsFrozen(int nBlockHeight=0, int64 nBlockTime=0) const
+    {
+        // Time based nLockTime implemented in 0.1.6
+        if (nLockTime == 0)
+            return false;
+        if (nBlockHeight == 0)
+            nBlockHeight = nBestHeight;
+        if (nBlockTime == 0)
+            nBlockTime = GetAdjustedTime();
+        if ((int64)nLockTime <= ((int64)nLockTime < LOCKTIME_THRESHOLD ? (int64)nBlockHeight : nBlockTime))
+            return false;
+        return true;
+    }
+    
     bool IsNewerThan(const CTransaction& old) const
     {
         if (vin.size() != old.vin.size())

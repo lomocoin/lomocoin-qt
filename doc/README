@@ -1,4 +1,4 @@
-LoMoCoin 0.5.3 BETA
+LoMoCoin 0.5.4 BETA
 
 Copyright (c) 2011-2016 LoMoCoin Developers
 Distributed under the MIT/X11 software license, see the accompanying
@@ -39,7 +39,7 @@ lomocoind backupwallet <destination_backup_file>
 Then shutdown lomocoind by
 lomocoind stop
 Uninstall v0.4 client, download and install v0.5 client.
-Start up the new lomocoind (0.5.1).
+Start up the new lomocoind (0.5.4).
 If upgrade is performed after or close to upgrade deadline then blockchain
 re-download is required.
 

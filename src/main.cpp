@@ -937,9 +937,7 @@ int64 GetProofOfWorkReward(unsigned int nBits)
 // lomocoin: miner's coin stake is rewarded based on coin age spent (coin-days)
 int64 GetProofOfStakeReward(int64 nCoinAge)
 {
-    static int64 nRewardCoinYear = 5*CENT;  // creation amount per coin-year
-// COINAGE
-    //int64 nSubsidy = nCoinAge * 33 / (365 * 33 + 8) * nRewardCoinYear;
+    static int64 nRewardCoinYear = 5 * CENT;  // creation amount per coin-year
     int64 nSubsidy = nCoinAge * 33 / ((365 * 33 + 8) * 24 * 60) * nRewardCoinYear;
     if (fDebug && GetBoolArg("-printcreation"))
         printf("GetProofOfStakeReward(): create=%s nCoinAge=%"PRI64d"\n", FormatMoney(nSubsidy).c_str(), nCoinAge);
@@ -1314,6 +1312,14 @@ bool CTransaction::ConnectInputs(CTxDB& txdb, MapPrevTx inputs,
 
                     return DoS(100,error("ConnectInputs() : %s VerifySignature failed", GetHash().ToString().substr(0,10).c_str()));
                 }
+            }
+
+            if (txPrev.IsFrozen())
+            {
+                if (!IsCoinStake())
+                    return error("ConnectInputs() : %s prev tx is frozen",GetHash().ToString().substr(0,10).c_str());
+                else if (nLockTime != txPrev.nLockTime)
+                    return error("ConnectInputs() : %s invalid nLockTime from prev tx",GetHash().ToString().substr(0,10).c_str());
             }
 
             // Mark outpoints as spent
@@ -2254,9 +2260,6 @@ bool CBlock::CheckBlockSignature() const
     {
         // Output is a pay-to-script-hash
         // Only allowed with cold minting
-
-        if (!IsProtocolV05(nTime))
-            return false;
 
         if (!IsProofOfStake())
             return false;

@@ -675,11 +675,14 @@ Value getinfo(const Array& params, bool fHelp)
             "getinfo\n"
             "Returns an object containing various state info.");
 
+    map<unsigned int,int64> frozenCoins;
+
     Object obj;
     obj.push_back(Pair("version",       FormatFullVersion()));
     obj.push_back(Pair("protocolversion",(int)PROTOCOL_VERSION));
     obj.push_back(Pair("walletversion", pwalletMain->GetVersion()));
     obj.push_back(Pair("balance",       ValueFromAmount(pwalletMain->GetBalance())));
+    obj.push_back(Pair("frozen",        ValueFromAmount(pwalletMain->GetFrozenBalance(frozenCoins))));
     obj.push_back(Pair("mintingonly",   ValueFromAmount(pwalletMain->GetMintingOnlyBalance())));
     obj.push_back(Pair("newmint",       ValueFromAmount(pwalletMain->GetNewMint())));
     obj.push_back(Pair("stake",         ValueFromAmount(pwalletMain->GetStake())));
@@ -2878,6 +2881,13 @@ Value listunspent(const Array& params, bool fHelp)
         }
         entry.push_back(Pair("scriptPubKey", HexStr(pk.begin(), pk.end())));
         entry.push_back(Pair("amount",ValueFromAmount(nValue)));
+        if (out.tx->IsFrozen() && out.tx->nLockTime >= LOCKTIME_THRESHOLD)
+        {
+            time_t ts = (time_t)out.tx->nLockTime;
+            char timestr[64];
+            strftime(timestr,sizeof(timestr),"%F %T",localtime(&ts));
+            entry.push_back(Pair("frozen", timestr));         
+        }
         entry.push_back(Pair("confirmations",out.nDepth));
         results.push_back(entry);
     }
@@ -2887,12 +2897,13 @@ Value listunspent(const Array& params, bool fHelp)
 
 Value createrawtransaction(const Array& params, bool fHelp)
 {
-    if (fHelp || params.size() != 2)
+    if (fHelp || params.size() < 2 || params.size() > 3)
         throw runtime_error(
-            "createrawtransaction [{\"txid\":txid,\"vout\":n},...] {address:amount,...}\n"
+            "createrawtransaction [{\"txid\":txid,\"vout\":n},...] {address:amount,...} [\"frozentime\"]\n"
             "Create a transaction spending given inputs\n"
             "(array of objects containing transaction id and output number),\n"
             "sending to given address(es).\n"
+            "the format of frozentime is year-month-day hour:minute:second\n"
             "Returns hex-encoded raw transaction.\n"
             "Note that the transaction's inputs are not signed, and\n"
             "it is not stored in the wallet or transmitted to the network.");
@@ -2901,6 +2912,15 @@ Value createrawtransaction(const Array& params, bool fHelp)
     Object sendTo = params[1].get_obj();
 
     CTransaction rawTx;
+
+    if (params.size() == 3)
+    {
+        struct tm tm;
+        memset(&tm, 0, sizeof(struct tm));
+        if (!strptime(params[2].get_str().c_str(), "%Y-%m-%d %H:%M:%S", &tm))
+            throw JSONRPCError(-8, "Invalid frozentime format");
+        rawTx.nLockTime = mktime(&tm);
+    }
 
     BOOST_FOREACH(Value& input, inputs)
     {
@@ -3243,7 +3263,7 @@ Value createsendfromaddress(const Array& params, bool fHelp)
 {
     if (fHelp || params.size() < 2 || params.size() > 3)
         throw runtime_error(
-            "createsendfromaddress <fromaddress> {address:amount,...} <fee>\n"
+            "createsendfromaddress <fromaddress> {address:amount,...} [fee]\n"
             "Create a transaction spending from given address,\n"
             "sending to given address(es).\n"
             "Returns hex-encoded raw transaction.\n"
@@ -3301,6 +3321,7 @@ Value getaddressinfo(const Array& params, bool fHelp)
             "Returns an object containing various state info for given address.");
 
     CBitcoinAddress address(params[0].get_str());
+    map<unsigned int,int64> frozenCoins;
 
     if (!address.IsValid())
         throw JSONRPCError(-5, string("Invalid Bitcoin address: ")+params[0].get_str());
@@ -3309,9 +3330,38 @@ Value getaddressinfo(const Array& params, bool fHelp)
 
     Object obj;
     obj.push_back(Pair("balance",       ValueFromAmount(pwalletMain->GetBalance(destAddress,false))));
+    obj.push_back(Pair("frozen",        ValueFromAmount(pwalletMain->GetFrozenBalance(destAddress,frozenCoins))));
     obj.push_back(Pair("mintingonly",   ValueFromAmount(pwalletMain->GetBalance(destAddress,true))));
     obj.push_back(Pair("stake",         ValueFromAmount(pwalletMain->GetStake(destAddress))));
     return obj;
+}
+
+Value getfrozen(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() != 0)
+        throw runtime_error(
+            "getfrozen\n"
+            "Returns frozen coins and unlock time.");
+
+    Array results;
+    map<unsigned int,int64> frozenCoins;
+    pwalletMain->GetFrozenBalance(frozenCoins);
+
+    for (map<unsigned int,int64>::const_iterator it = frozenCoins.begin(); it != frozenCoins.end(); ++it)
+    {
+        Object entry;
+        if ((int64)(*it).first < LOCKTIME_THRESHOLD || (*it).second == 0)
+            continue;        
+        
+        time_t ts = (time_t)(*it).first;
+        char timestr[64];
+        strftime(timestr,sizeof(timestr),"%F %T",localtime(&ts));
+        entry.push_back(Pair("unlock", timestr)); 
+        entry.push_back(Pair("amount", ValueFromAmount((*it).second))); 
+        results.push_back(entry);
+    }
+
+    return results;
 }
 
 //
@@ -3388,6 +3438,7 @@ static const CRPCCommand vRPCCommands[] =
     { "getrawmempool",          &getrawmempool,          true },
     { "createsendfromaddress",  &createsendfromaddress,  false },
     { "getaddressinfo",         &getaddressinfo,         true },
+    { "getfrozen",              &getfrozen,              false},
 };
 
 CRPCTable::CRPCTable()

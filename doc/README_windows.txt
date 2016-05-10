@@ -1,4 +1,4 @@
-LoMoCoin 0.5.1 BETA
+LoMoCoin 0.5.4 BETA
 
 Copyright (c) 2011-2016 LoMoCoin Developers
 Distributed under the MIT/X11 software license, see the accompanying
