@@ -5,7 +5,7 @@ SetCompressor /SOLID lzma
 
 # General Symbol Definitions
 !define REGKEY "SOFTWARE\$(^Name)"
-!define VERSION 0.5.1
+!define VERSION 0.5.4
 !define COMPANY "LoMoCoin project"
 !define URL http://github.com/lomocoin/lomocoin/
 
@@ -45,13 +45,13 @@ Var StartMenuGroup
 !insertmacro MUI_LANGUAGE English
 
 # Installer attributes
-OutFile lomocoin-0.5.1rc2-win32-setup.exe
+OutFile lomocoin-0.5.4-win32-setup.exe
 InstallDir $PROGRAMFILES\LoMoCoin
 CRCCheck on
 XPStyle on
 BrandingText " "
 ShowInstDetails show
-VIProductVersion 0.5.1.0
+VIProductVersion 0.5.4.0
 VIAddVersionKey ProductName LoMoCoin
 VIAddVersionKey ProductVersion "${VERSION}"
 VIAddVersionKey CompanyName "${COMPANY}"

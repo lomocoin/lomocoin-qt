@@ -246,6 +246,10 @@ void TxToJSON(const CTransaction& tx, Object& txdata)
         {
             vin.push_back(Pair("txid", txin.prevout.hash.ToString().c_str()));
             vin.push_back(Pair("vout", (int)txin.prevout.n));
+            Object o;
+            o.push_back(Pair("asm", txin.scriptSig.ToString()));
+            o.push_back(Pair("hex", HexStr(txin.scriptSig.begin(), txin.scriptSig.end())));
+            vin.push_back(Pair("scriptSig", o));
         }
 
         vin.push_back(Pair("sequence", (boost::uint64_t)txin.nSequence));
