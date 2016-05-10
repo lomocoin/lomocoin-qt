@@ -1323,15 +1323,6 @@ bool CWallet::CreateTransaction(const vector<pair<CScript, int64> >& vecSend, CW
                     return false;
                 dPriority /= nBytes;
 
-                // Check that enough fee is included
-                int64 nPayFee = nTransactionFee * (1 + (int64)nBytes / 1000);
-                int64 nMinFee = wtxNew.GetMinFee(1, false, GMF_SEND);
-                if (nFeeRet < max(nPayFee, nMinFee))
-                {
-                    nFeeRet = max(nPayFee, nMinFee);
-                    continue;
-                }
-
                 // Fill vtxPrev by copying from previous transactions vtxPrev
                 wtxNew.AddSupportingTransactions(txdb);
                 wtxNew.fTimeReceivedIsTxTime = true;
