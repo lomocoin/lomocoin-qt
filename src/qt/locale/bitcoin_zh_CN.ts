@@ -5,12 +5,12 @@
     <message>
         <location filename="../forms/aboutdialog.ui" line="14"/>
         <source>About LoMoCoin</source>
-        <translation>关于比特币</translation>
+        <translation>关于邻萌币</translation>
     </message>
     <message>
         <location filename="../forms/aboutdialog.ui" line="53"/>
         <source>&lt;b&gt;LoMoCoin&lt;/b&gt; version</source>
-        <translation>&lt;b&gt;比特币&lt;/b&gt;版本</translation>
+        <translation>&lt;b&gt;邻萌币&lt;/b&gt;版本</translation>
     </message>
     <message>
         <location filename="../forms/aboutdialog.ui" line="85"/>
@@ -21,7 +21,7 @@ This is experimental software.
 Distributed under the MIT/X11 software license, see the accompanying file license.txt or http://www.opensource.org/licenses/mit-license.php.
 
 This product includes software developed by the OpenSSL Project for use in the OpenSSL Toolkit (http://www.openssl.org/) and cryptographic software written by Eric Young (eay@cryptsoft.com) and UPnP software written by Thomas Bernard.</source>
-        <translation>版权归比特币开发者所有  © 2011-2013 LoMoCoin Developers
+        <translation>版权归邻萌币开发者所有  © 2011-2013 LoMoCoin Developers
 
 这是一个实验性软件。
 
@@ -40,7 +40,7 @@ This product includes software developed by the OpenSSL Project for use in the O
     <message>
         <location filename="../forms/addressbookpage.ui" line="20"/>
         <source>These are your LoMoCoin addresses for receiving payments.  You may want to give a different one to each sender so you can keep track of who is paying you.</source>
-        <translation>这些是你接受支付的比特币地址。当支付时你可以给出不同的地址，以便追踪不同的支付者。</translation>
+        <translation>这些是你接受支付的邻萌币地址。当支付时你可以给出不同的地址，以便追踪不同的支付者。</translation>
     </message>
     <message>
         <location filename="../forms/addressbookpage.ui" line="33"/>
@@ -75,7 +75,7 @@ This product includes software developed by the OpenSSL Project for use in the O
     <message>
         <location filename="../forms/addressbookpage.ui" line="96"/>
         <source>Sign a message to prove you own this address</source>
-        <translation>发送签名消息以证明您是该比特币地址的拥有者</translation>
+        <translation>发送签名消息以证明您是该邻萌币地址的拥有者</translation>
     </message>
     <message>
         <location filename="../forms/addressbookpage.ui" line="99"/>
@@ -228,7 +228,7 @@ This product includes software developed by the OpenSSL Project for use in the O
         <location filename="../askpassphrasedialog.cpp" line="102"/>
         <source>WARNING: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR LoMoCoinS&lt;/b&gt;!
 Are you sure you wish to encrypt your wallet?</source>
-        <translation>警告：如果您加密了您的钱包之后忘记了口令，您将会&lt;b&gt;失去所有的比特币&lt;/b&gt;！
+        <translation>警告：如果您加密了您的钱包之后忘记了口令，您将会&lt;b&gt;失去所有的邻萌币&lt;/b&gt;！
 确定要加密钱包吗？</translation>
     </message>
     <message>
@@ -240,7 +240,7 @@ Are you sure you wish to encrypt your wallet?</source>
     <message>
         <location filename="../askpassphrasedialog.cpp" line="112"/>
         <source>LoMoCoin will close now to finish the encryption process. Remember that encrypting your wallet cannot fully protect your LoMoCoins from being stolen by malware infecting your computer.</source>
-        <translation>将关闭软件以完成加密过程。 请您谨记：钱包加密并不是万能的，电脑中毒，您的比特币还是有可能丢失。</translation>
+        <translation>将关闭软件以完成加密过程。 请您谨记：钱包加密并不是万能的，电脑中毒，您的邻萌币还是有可能丢失。</translation>
     </message>
     <message>
         <location filename="../askpassphrasedialog.cpp" line="208"/>
@@ -295,7 +295,7 @@ Are you sure you wish to encrypt your wallet?</source>
     <message>
         <location filename="../bitcoingui.cpp" line="69"/>
         <source>LoMoCoin Wallet</source>
-        <translation>比特币钱包</translation>
+        <translation>邻萌币钱包</translation>
     </message>
     <message>
         <location filename="../bitcoingui.cpp" line="142"/>
@@ -356,7 +356,7 @@ Are you sure you wish to encrypt your wallet?</source>
     <message>
         <location filename="../bitcoingui.cpp" line="201"/>
         <source>Send coins to a LoMoCoin address</source>
-        <translation>将货币发送到一个比特币地址</translation>
+        <translation>将货币发送到一个邻萌币地址</translation>
     </message>
     <message>
         <location filename="../bitcoingui.cpp" line="206"/>
@@ -366,7 +366,7 @@ Are you sure you wish to encrypt your wallet?</source>
     <message>
         <location filename="../bitcoingui.cpp" line="207"/>
         <source>Prove you control an address</source>
-        <translation>证明您拥有某个比特币地址</translation>
+        <translation>证明您拥有某个邻萌币地址</translation>
     </message>
     <message>
         <location filename="../bitcoingui.cpp" line="226"/>
@@ -386,7 +386,7 @@ Are you sure you wish to encrypt your wallet?</source>
     <message>
         <location filename="../bitcoingui.cpp" line="231"/>
         <source>Show information about LoMoCoin</source>
-        <translation>显示比特币的相关信息</translation>
+        <translation>显示邻萌币的相关信息</translation>
     </message>
     <message>
         <location filename="../bitcoingui.cpp" line="233"/>
@@ -406,17 +406,17 @@ Are you sure you wish to encrypt your wallet?</source>
     <message>
         <location filename="../bitcoingui.cpp" line="237"/>
         <source>Modify configuration options for LoMoCoin</source>
-        <translation>修改比特币配置选项</translation>
+        <translation>修改邻萌币配置选项</translation>
     </message>
     <message>
         <location filename="../bitcoingui.cpp" line="239"/>
         <source>Open &amp;LoMoCoin</source>
-        <translation>打开 &amp;比特币</translation>
+        <translation>打开 &amp;邻萌币</translation>
     </message>
     <message>
         <location filename="../bitcoingui.cpp" line="240"/>
         <source>Show the LoMoCoin window</source>
-        <translation>显示比特币窗口</translation>
+        <translation>显示邻萌币窗口</translation>
     </message>
     <message>
         <location filename="../bitcoingui.cpp" line="241"/>
@@ -496,7 +496,7 @@ Are you sure you wish to encrypt your wallet?</source>
     <message numerus="yes">
         <location filename="../bitcoingui.cpp" line="449"/>
         <source>%n active connection(s) to LoMoCoin network</source>
-        <translation><numerusform>%n 个到比特币网络的活动连接</numerusform></translation>
+        <translation><numerusform>%n 个到邻萌币网络的活动连接</numerusform></translation>
     </message>
     <message>
         <location filename="../bitcoingui.cpp" line="475"/>
@@ -546,7 +546,7 @@ Are you sure you wish to encrypt your wallet?</source>
     <message>
         <location filename="../bitcoingui.cpp" line="597"/>
         <source>This transaction is over the size limit.  You can still send it for a fee of %1, which goes to the nodes that process your transaction and helps to support the network.  Do you want to pay the fee?</source>
-        <translation>该笔交易的数据量超限.您可以选择支付 %1 交易费， 交易费将支付给处理该笔交易的网络节点，有助于维持比特币网络的运行.  您愿意支付交易费用吗？</translation>
+        <translation>该笔交易的数据量超限.您可以选择支付 %1 交易费， 交易费将支付给处理该笔交易的网络节点，有助于维持邻萌币网络的运行.  您愿意支付交易费用吗？</translation>
     </message>
     <message>
         <location filename="../bitcoingui.cpp" line="602"/>
@@ -617,7 +617,7 @@ Address: %4
     <message>
         <location filename="../optionsdialog.cpp" line="274"/>
         <source>Choose the default subdivision unit to show in the interface, and when sending coins</source>
-        <translation>选择显示及发送比特币时使用的最小单位</translation>
+        <translation>选择显示及发送邻萌币时使用的最小单位</translation>
     </message>
     <message>
         <location filename="../optionsdialog.cpp" line="281"/>
@@ -680,7 +680,7 @@ Address: %4
     <message>
         <location filename="../editaddressdialog.cpp" line="96"/>
         <source>The entered address &quot;%1&quot; is not a valid LoMoCoin address.</source>
-        <translation>输入的地址  &quot;%1&quot; 并不是一个有效的比特币地址</translation>
+        <translation>输入的地址  &quot;%1&quot; 并不是一个有效的邻萌币地址</translation>
     </message>
     <message>
         <location filename="../editaddressdialog.cpp" line="101"/>
@@ -698,12 +698,12 @@ Address: %4
     <message>
         <location filename="../optionsdialog.cpp" line="170"/>
         <source>&amp;Start LoMoCoin on window system startup</source>
-        <translation>&amp;开机启动比特币</translation>
+        <translation>&amp;开机启动邻萌币</translation>
     </message>
     <message>
         <location filename="../optionsdialog.cpp" line="171"/>
         <source>Automatically start LoMoCoin after the computer is turned on</source>
-        <translation>在计算机启动后自动运行比特币</translation>
+        <translation>在计算机启动后自动运行邻萌币</translation>
     </message>
     <message>
         <location filename="../optionsdialog.cpp" line="175"/>
@@ -723,7 +723,7 @@ Address: %4
     <message>
         <location filename="../optionsdialog.cpp" line="181"/>
         <source>Automatically open the LoMoCoin client port on the router. This only works when your router supports UPnP and it is enabled.</source>
-        <translation>自动在路由器中打开比特币端口。只有当您的路由器开启 UPnP 选项时此功能才有效。</translation>
+        <translation>自动在路由器中打开邻萌币端口。只有当您的路由器开启 UPnP 选项时此功能才有效。</translation>
     </message>
     <message>
         <location filename="../optionsdialog.cpp" line="185"/>
@@ -743,7 +743,7 @@ Address: %4
     <message>
         <location filename="../optionsdialog.cpp" line="191"/>
         <source>Connect to the Bitcon network through a SOCKS4 proxy (e.g. when connecting through Tor)</source>
-        <translation>通过一个SOCKS4代理连接到比特币网络 (如使用Tor连接时)</translation>
+        <translation>通过一个SOCKS4代理连接到邻萌币网络 (如使用Tor连接时)</translation>
     </message>
     <message>
         <location filename="../optionsdialog.cpp" line="196"/>
@@ -768,7 +768,7 @@ Address: %4
     <message>
         <location filename="../optionsdialog.cpp" line="217"/>
         <source>Optional transaction fee per kB that helps make sure your transactions are processed quickly.  Most transactions are 1 kB.  Fee 0.01 recommended.</source>
-        <translation>建议支付交易费用，有助于您的交易得到尽快处理.  绝大多数交易的字节数为 1 kB. 建议支付0.01个比特币.</translation>
+        <translation>建议支付交易费用，有助于您的交易得到尽快处理.  绝大多数交易的字节数为 1 kB. 建议支付0.01个邻萌币.</translation>
     </message>
     <message>
         <location filename="../optionsdialog.cpp" line="223"/>
@@ -778,7 +778,7 @@ Address: %4
     <message>
         <location filename="../optionsdialog.cpp" line="226"/>
         <source>Optional transaction fee per kB that helps make sure your transactions are processed quickly. Most transactions are 1 kB. Fee 0.01 recommended.</source>
-        <translation>建议支付交易费用，有助于您的交易得到尽快处理.  绝大多数交易的字节数为 1 kB. 建议支付0.01个比特币.</translation>
+        <translation>建议支付交易费用，有助于您的交易得到尽快处理.  绝大多数交易的字节数为 1 kB. 建议支付0.01个邻萌币.</translation>
     </message>
 </context>
 <context>
@@ -831,7 +831,7 @@ Address: %4
     <message>
         <location filename="../forms/messagepage.ui" line="117"/>
         <source>Sign a message to prove you own this address</source>
-        <translation>发送签名消息以证明您是该比特币地址的拥有者</translation>
+        <translation>发送签名消息以证明您是该邻萌币地址的拥有者</translation>
     </message>
     <message>
         <location filename="../forms/messagepage.ui" line="120"/>
@@ -858,7 +858,7 @@ Address: %4
     <message>
         <location filename="../messagepage.cpp" line="74"/>
         <source>%1 is not a valid address.</source>
-        <translation>%1 不是合法的比特币地址。</translation>
+        <translation>%1 不是合法的邻萌币地址。</translation>
     </message>
     <message>
         <location filename="../messagepage.cpp" line="89"/>
@@ -1184,7 +1184,7 @@ p, li { white-space: pre-wrap; }
     <message>
         <location filename="../sendcoinsentry.cpp" line="25"/>
         <source>Enter a LoMoCoin address (e.g. 1NS17iag9jJgTHD1VXjvLCEnZuQ3rJDE9L)</source>
-        <translation>请输入比特币地址 (例如: 1NS17iag9jJgTHD1VXjvLCEnZuQ3rJDE9L)</translation>
+        <translation>请输入邻萌币地址 (例如: 1NS17iag9jJgTHD1VXjvLCEnZuQ3rJDE9L)</translation>
     </message>
 </context>
 <context>
@@ -1325,7 +1325,7 @@ p, li { white-space: pre-wrap; }
     <message>
         <location filename="../transactiondesc.cpp" line="224"/>
         <source>Generated coins must wait 120 blocks before they can be spent.  When you generated this block, it was broadcast to the network to be added to the block chain.  If it fails to get into the chain, it will change to &quot;not accepted&quot; and not be spendable.  This may occasionally happen if another node generates a block within a few seconds of yours.</source>
-        <translation>新生产的比特币必须等待120个数据块之后才能被使用. 当您生产出此数据块,它将被广播至比特币网络并添加至数据链. 如果添加到数据链失败, 它的状态将变成&quot;不被接受&quot;，生产的比特币将不能使用. 在您生产新数据块的几秒钟内, 如果其它节点也生产出同样的数据块，有可能会发生这种情况.</translation>
+        <translation>新生产的邻萌币必须等待120个数据块之后才能被使用. 当您生产出此数据块,它将被广播至邻萌币网络并添加至数据链. 如果添加到数据链失败, 它的状态将变成&quot;不被接受&quot;，生产的邻萌币将不能使用. 在您生产新数据块的几秒钟内, 如果其它节点也生产出同样的数据块，有可能会发生这种情况.</translation>
     </message>
 </context>
 <context>
@@ -1636,7 +1636,7 @@ p, li { white-space: pre-wrap; }
     <message>
         <location filename="../bitcoinstrings.cpp" line="3"/>
         <source>LoMoCoin version</source>
-        <translation>比特币版本</translation>
+        <translation>邻萌币版本</translation>
     </message>
     <message>
         <location filename="../bitcoinstrings.cpp" line="4"/>
@@ -1788,7 +1788,7 @@ p, li { white-space: pre-wrap; }
     <message>
         <location filename="../bitcoinstrings.cpp" line="32"/>
         <source>Fee per kB to add to transactions you send</source>
-        <translation>为付款交易支付比特币(每kb)</translation>
+        <translation>为付款交易支付邻萌币(每kb)</translation>
     </message>
     <message>
         <location filename="../bitcoinstrings.cpp" line="33"/>
@@ -1876,7 +1876,7 @@ p, li { white-space: pre-wrap; }
         <source>
 SSL options: (see the LoMoCoin Wiki for SSL setup instructions)</source>
         <translation>
-SSL 选项: (SSL 安装教程具体见比特币维基百科)
+SSL 选项: (SSL 安装教程具体见邻萌币维基百科)
 </translation>
     </message>
     <message>
@@ -1911,7 +1911,7 @@ SSL 选项: (SSL 安装教程具体见比特币维基百科)
     <message>
         <location filename="../bitcoinstrings.cpp" line="57"/>
         <source>Cannot obtain a lock on data directory %s.  LoMoCoin is probably already running.</source>
-        <translation>无法给数据目录 %s 加锁。比特币进程可能已在运行。</translation>
+        <translation>无法给数据目录 %s 加锁。邻萌币进程可能已在运行。</translation>
     </message>
     <message>
         <location filename="../bitcoinstrings.cpp" line="60"/>
@@ -1996,12 +1996,12 @@ SSL 选项: (SSL 安装教程具体见比特币维基百科)
     <message>
         <location filename="../bitcoinstrings.cpp" line="78"/>
         <source>Unable to bind to port %d on this computer.  LoMoCoin is probably already running.</source>
-        <translation>无法绑定端口 %d 到这台计算机。比特币进程可能已在运行。</translation>
+        <translation>无法绑定端口 %d 到这台计算机。邻萌币进程可能已在运行。</translation>
     </message>
     <message>
         <location filename="../bitcoinstrings.cpp" line="81"/>
         <source>Warning: Please check that your computer&apos;s date and time are correct.  If your clock is wrong LoMoCoin will not work properly.</source>
-        <translation>警告：请确定您当前计算机的日期和时间是正确的。比特币将无法在错误的时间下正常工作。</translation>
+        <translation>警告：请确定您当前计算机的日期和时间是正确的。邻萌币将无法在错误的时间下正常工作。</translation>
     </message>
     <message>
         <location filename="../bitcoinstrings.cpp" line="84"/>

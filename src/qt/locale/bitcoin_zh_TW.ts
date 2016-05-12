@@ -5,12 +5,12 @@
     <message>
         <location filename="../forms/aboutdialog.ui" line="14"/>
         <source>About LoMoCoin</source>
-        <translation>關於位元幣</translation>
+        <translation>關於鄰萌幣</translation>
     </message>
     <message>
         <location filename="../forms/aboutdialog.ui" line="53"/>
         <source>&lt;b&gt;LoMoCoin&lt;/b&gt; version</source>
-        <translation>&lt;b&gt;位元幣&lt;/b&gt;版本</translation>
+        <translation>&lt;b&gt;鄰萌幣&lt;/b&gt;版本</translation>
     </message>
     <message>
         <location filename="../forms/aboutdialog.ui" line="85"/>
@@ -767,7 +767,7 @@ Address: %4
     <message>
         <location filename="../optionsdialog.cpp" line="217"/>
         <source>Optional transaction fee per kB that helps make sure your transactions are processed quickly.  Most transactions are 1 kB.  Fee 0.01 recommended.</source>
-        <translation>非必要的交易手續費, 以 kB 為計費單位, 且有助於縮短你的交易處理時間.  大部份交易的資料大小是 1 kB.  建議設定為 0.01 元.</translation>
+        <translation>非必要的交易手續費, 以 kB 為計費單位, 且有助於縮短你的交易處理時間.  大部份交易的資料大小是 1 kB.  建議設定為 0.0001 元.</translation>
     </message>
     <message>
         <location filename="../optionsdialog.cpp" line="223"/>
@@ -777,7 +777,7 @@ Address: %4
     <message>
         <location filename="../optionsdialog.cpp" line="226"/>
         <source>Optional transaction fee per kB that helps make sure your transactions are processed quickly. Most transactions are 1 kB. Fee 0.01 recommended.</source>
-        <translation>非必要的交易手續費, 以 kB 為計費單位, 且有助於縮短你的交易處理時間. 大部份交易的資料大小是 1 kB. 建議設定為 0.01 元.</translation>
+        <translation>非必要的交易手續費, 以 kB 為計費單位, 且有助於縮短你的交易處理時間. 大部份交易的資料大小是 1 kB. 建議設定為 0.0001 元.</translation>
     </message>
 </context>
 <context>
