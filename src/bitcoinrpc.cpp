@@ -3251,28 +3251,13 @@ Value getrawmempool(const Array& params, bool fHelp)
     return a;
 }
 
-Value createsendfromaddress(const Array& params, bool fHelp)
+bool CreateRawSendFromAddress(CBitcoinAddress& fromAddress,Object& sendTo,int64 nFee,CTransaction& rawTx)
 {
-    if (fHelp || params.size() < 2 || params.size() > 3)
-        throw runtime_error(
-            "createsendfromaddress <fromaddress> {address:amount,...} [fee]\n"
-            "Create a transaction spending from given address,\n"
-            "sending to given address(es).\n"
-            "Returns hex-encoded raw transaction.\n"
-            "Note that the transaction's inputs are not signed, and\n"
-            "it is not stored in the wallet or transmitted to the network.");
-
-    CBitcoinAddress fromAddress(params[0].get_str());
-    Object sendTo = params[1].get_obj();
-
-    int64 nFee = nTransactionFee;
-    if (params.size() == 3)
+    if (nFee < nTransactionFee)
     {
-        nFee = AmountFromValue(params[2]);
-        nFee = (nFee / CENT) * CENT;  // round to cent
+        nFee = nTransactionFee;
     }
 
-    CTransaction rawTx;
     int64 nValueOut = 0;
     set<CBitcoinAddress> setAddress;
     BOOST_FOREACH(const Pair& s, sendTo)
@@ -3297,13 +3282,111 @@ Value createsendfromaddress(const Array& params, bool fHelp)
     if (nValueOut == 0)
         throw JSONRPCError(-10, string("Invalid parameter, total output = 0"));
 
-    if (!pwalletMain->CreateAddressTransaction(fromAddress.Get(),nValueOut,rawTx,nFee))
+    return pwalletMain->CreateAddressTransaction(fromAddress.Get(),nValueOut,rawTx,nFee);
+}
+
+Value createsendfromaddress(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() < 2 || params.size() > 3)
+        throw runtime_error(
+            "createsendfromaddress <fromaddress> {address:amount,...} [fee]\n"
+            "Create a transaction spending from given address,\n"
+            "sending to given address(es).\n"
+            "Returns hex-encoded raw transaction.\n"
+            "Note that the transaction's inputs are not signed, and\n"
+            "it is not stored in the wallet or transmitted to the network.");
+
+    CBitcoinAddress fromAddress(params[0].get_str());
+    Object sendTo = params[1].get_obj();
+
+    int64 nFee = nTransactionFee;
+    if (params.size() == 3)
+    {
+        nFee = AmountFromValue(params[2]);
+    }
+
+    CTransaction rawTx;
+
+    if (!CreateRawSendFromAddress(fromAddress,sendTo,nFee,rawTx))
         throw JSONRPCError(-11, string("failed to create transaction"));
 
     CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
     ss << rawTx;
     return HexStr(ss.begin(), ss.end());    
 }
+
+Value sendfromaddress(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() < 2 || params.size() > 3)
+        throw runtime_error(
+            "createsendfromaddress <fromaddress> {address:amount,...} [fee]\n"
+            "Create a transaction spending from given address,\n"
+            "sending to given address(es).\n"
+            "Returns hex-encoded raw transaction.\n"
+            "Note that the transaction's inputs are not signed, and\n"
+            "it is not stored in the wallet or transmitted to the network.");
+
+    CBitcoinAddress fromAddress(params[0].get_str());
+    CScript scriptPubKey;
+    if (!fromAddress.IsValid())
+        throw JSONRPCError(-5, "Invalid Lomocoin address");
+    scriptPubKey.SetDestination(fromAddress.Get());
+    if (!IsMine(*pwalletMain,scriptPubKey))
+        throw JSONRPCError(-6, "Unknown fromaddress");
+
+    Object sendTo = params[1].get_obj();
+
+    int64 nFee = nTransactionFee;
+    if (params.size() == 3)
+    {
+        nFee = AmountFromValue(params[2]);
+    }
+
+    if (fWalletUnlockMintOnly)
+        throw JSONRPCError(-102, "Wallet is unlocked for minting only.");
+    if (pwalletMain->IsLocked())
+        throw JSONRPCError(-13, "The wallet must be unlocked with walletpassphrase first");
+
+    CTransaction Tx;
+
+    if (!CreateRawSendFromAddress(fromAddress,sendTo,nFee,Tx))
+        throw JSONRPCError(-11, string("failed to create transaction"));
+
+    for (unsigned int i = 0; i < Tx.vin.size(); i++)
+    {
+        CTxIn& txin = Tx.vin[i];
+        txin.scriptSig.clear();
+        if (!SignSignature(*pwalletMain, scriptPubKey, Tx, i))
+            throw JSONRPCError(-12, string("failed to sign transaction"));
+    }
+
+    uint256 hashTx = Tx.GetHash();
+
+    // See if the transaction is already in a block
+    // or in the memory pool:
+    CTransaction existingTx;
+    uint256 hashBlock = 0;
+    if (GetTransaction(hashTx, existingTx, hashBlock))
+    {
+        if (hashBlock != 0)
+            throw JSONRPCError(-5, string("transaction already in block ")+hashBlock.GetHex());
+        // Not in block, but already in the memory pool; will drop
+        // through to re-relay it.
+    }
+    else
+    {
+        // push to local node
+        CTxDB txdb("r");
+        if (!Tx.AcceptToMemoryPool(txdb, true))
+            throw JSONRPCError(-22, "TX rejected");
+
+        SyncWithWallets(Tx, NULL, true);
+    }
+    RelayMessage(CInv(MSG_TX, hashTx), Tx);
+
+    return hashTx.GetHex();
+}
+
 
 Value getaddressinfo(const Array& params, bool fHelp)
 {
@@ -3426,6 +3509,7 @@ static const CRPCCommand vRPCCommands[] =
     { "sendrawtransaction",     &sendrawtransaction,     false},
     { "getrawmempool",          &getrawmempool,          true },
     { "createsendfromaddress",  &createsendfromaddress,  false },
+    { "sendfromaddress",        &sendfromaddress,        false },
     { "getaddressinfo",         &getaddressinfo,         true },
     { "getfrozen",              &getfrozen,              false},
 };
@@ -4077,6 +4161,8 @@ Array RPCConvertValues(const std::string &strMethod, const std::vector<std::stri
     if (strMethod == "sendrawtransaction"     && n > 1) ConvertTo<boost::int64_t>(params[1]);
     if (strMethod == "createsendfromaddress"  && n > 1) ConvertTo<Object>(params[1]);
     if (strMethod == "createsendfromaddress"  && n > 2) ConvertTo<double>(params[2]);
+    if (strMethod == "sendfromaddress"        && n > 1) ConvertTo<Object>(params[1]);
+    if (strMethod == "sendfromaddress"        && n > 2) ConvertTo<double>(params[2]);
     return params;
 }
 
