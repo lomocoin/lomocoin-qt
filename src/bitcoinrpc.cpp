@@ -3436,6 +3436,32 @@ Value getfrozen(const Array& params, bool fHelp)
     return results;
 }
 
+Value mergeaddress(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() != 2)
+        throw runtime_error(
+            "mergeaddress <address> <thresh>\n"
+            "Create a transaction selecting fragmented coins from given address,\n"
+            "sending to given address.\n");
+
+    CBitcoinAddress address(params[0].get_str());
+    CScript scriptPubKey;
+    if (!address.IsValid())
+        throw JSONRPCError(-5, "Invalid Lomocoin address");
+    scriptPubKey.SetDestination(address.Get());
+    if (!IsMine(*pwalletMain,scriptPubKey))
+        throw JSONRPCError(-6, "Unknown address");
+
+    int64 nMergeThresh = AmountFromValue(params[1]);
+
+    CWalletTx wtx;
+    string strError = pwalletMain->MergeAddressMoney(scriptPubKey,nMergeThresh,wtx);
+    if (strError != "")
+        throw JSONRPCError(-4, strError);
+    if (wtx.vin.size() == 0)
+        return ""; 
+    return wtx.GetHash().GetHex();
+}
 //
 // Call Table
 //
@@ -3512,6 +3538,7 @@ static const CRPCCommand vRPCCommands[] =
     { "sendfromaddress",        &sendfromaddress,        false },
     { "getaddressinfo",         &getaddressinfo,         true },
     { "getfrozen",              &getfrozen,              false},
+    { "mergeaddress",           &mergeaddress,           false},
 };
 
 CRPCTable::CRPCTable()
@@ -4163,6 +4190,7 @@ Array RPCConvertValues(const std::string &strMethod, const std::vector<std::stri
     if (strMethod == "createsendfromaddress"  && n > 2) ConvertTo<double>(params[2]);
     if (strMethod == "sendfromaddress"        && n > 1) ConvertTo<Object>(params[1]);
     if (strMethod == "sendfromaddress"        && n > 2) ConvertTo<double>(params[2]);
+    if (strMethod == "mergeaddress"           && n > 1) ConvertTo<double>(params[1]);
     return params;
 }
 

@@ -1295,6 +1295,26 @@ bool CWallet::SelectMintingOnlyCoins(unsigned int nSpendTime, set<pair<const CWa
     return true;
 }
 
+bool CWallet::SelectFragmentedCoins(CScript& scriptPubKey,int64 nValueThresh,unsigned int nSpendTime, set<pair<const CWalletTx*,unsigned int> >& setCoinsRet) const
+{
+    vector<COutput> vCoins;
+    AvailableCoins(nSpendTime, vCoins);
+
+    setCoinsRet.clear();
+
+    BOOST_FOREACH(COutput output, vCoins)
+    {
+        const CWalletTx *pcoin = output.tx;
+        int i = output.i;
+        int64 nValue = pcoin->vout[i].nValue;
+ 
+        if (nValue < nValueThresh && pcoin->vout[i].scriptPubKey == scriptPubKey && !pcoin->IsFrozen())
+        {
+            setCoinsRet.insert(make_pair(pcoin, i));
+        }
+    }
+    return true;
+}
 
 bool CWallet::CreateTransaction(const vector<pair<CScript, int64> >& vecSend, CWalletTx& wtxNew, CReserveKey& reservekey, int64& nFeeRet)
 {
@@ -1451,6 +1471,89 @@ bool CWallet::CreateAddressTransaction(CTxDestination FromAddress,int64 nValue,C
         }
     }
     return true;
+}
+
+string CWallet::MergeAddressMoney(CScript scriptPubKey,int64 nMergeThresh,CWalletTx& wtxNew)
+{
+    CReserveKey reservekey(this);
+
+    if (IsLocked())
+    {
+        string strError = _("Error: Wallet locked, unable to create transaction  ");
+        printf("MergeAddressMoney() : %s", strError.c_str());
+        return strError;
+    }
+    if (fWalletUnlockMintOnly)
+    {
+        string strError = _("Error: Wallet unlocked for block minting only, unable to create transaction.");
+        printf("MergeAddressMoney() : %s", strError.c_str());
+        return strError;
+    }
+
+    wtxNew.BindWallet(this);
+    {
+        LOCK2(cs_main, cs_wallet);
+        CTxDB txdb("r");
+        {
+            set<pair<const CWalletTx*,unsigned int> > setCoins;
+            if (!SelectFragmentedCoins(scriptPubKey,nMergeThresh,wtxNew.nTime,setCoins))
+            {
+                string strError = _("Error: Failed to select coins.");
+                printf("MergeAddressMoney() : %s", strError.c_str());
+                return strError;
+            }
+
+            unsigned int nMaxMergeTx = 64;
+            loop
+            {
+                int64 nValueIn = 0;
+
+                wtxNew.vin.clear();
+                wtxNew.vout.clear();
+                wtxNew.fFromMe = true;
+
+                BOOST_FOREACH(PAIRTYPE(const CWalletTx*, unsigned int) coin, setCoins)
+                {
+                    nValueIn += coin.first->vout[coin.second].nValue;
+                    wtxNew.vin.push_back(CTxIn(coin.first->GetHash(),coin.second));
+                    if (wtxNew.vin.size() >= nMaxMergeTx)
+                        break;
+                }
+                if (nValueIn < nTransactionFee + MIN_TXOUT_AMOUNT || wtxNew.vin.size() < 2)
+                {
+                    wtxNew.vin.clear();
+                    return "";
+                }
+            
+                wtxNew.vout.push_back(CTxOut(nValueIn - nTransactionFee, scriptPubKey)); 
+
+                // Sign
+                for (unsigned int i = 0;i < wtxNew.vin.size();i++)
+                {
+                    if (!SignSignature(*this, scriptPubKey, wtxNew, i))
+                    {
+                        string strError = _("Error: Failed to sign signature.");
+                        printf("MergeAddressMoney() : %s", strError.c_str());
+                        return strError;
+                    }
+                }
+                // Limit size
+                unsigned int nBytes = ::GetSerializeSize(*(CTransaction*)&wtxNew, SER_NETWORK, PROTOCOL_VERSION);
+                if (nBytes < MAX_BLOCK_SIZE_GEN/5)
+                {
+                    wtxNew.AddSupportingTransactions(txdb);
+                    wtxNew.fTimeReceivedIsTxTime = true;
+                    break;
+                }
+
+                nMaxMergeTx /= 2;
+            }
+        }
+    }
+
+    if (!CommitTransaction(wtxNew, reservekey))
+        return _("Error: The transaction was rejected.  This might happen if some of the coins in your wallet were already spent, such as if you used a copy of wallet.dat and coins were spent in the copy but not marked as spent here.");
+    return "";
 }
 
 // lomocoin: create coin stake transaction
