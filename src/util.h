@@ -28,7 +28,7 @@ typedef int pid_t; /* define for windows compatiblity */
 #include <boost/interprocess/sync/lock_options.hpp>
 #include <boost/date_time/gregorian/gregorian_types.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
-
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <openssl/sha.h>
 #include <openssl/ripemd.h>
 
@@ -456,6 +456,11 @@ static const std::string strTimestampFormat = "%Y-%m-%d %H:%M:%S UTC";
 inline std::string DateTimeStrFormat(int64 nTime)
 {
     return DateTimeStrFormat(strTimestampFormat.c_str(), nTime);
+}
+
+inline struct tm DateTimeFromStr(const std::string& strDateTime)
+{
+    return boost::posix_time::to_tm(boost::posix_time::time_from_string(strDateTime));
 }
 
 template<typename T>

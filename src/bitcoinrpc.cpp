@@ -2882,12 +2882,7 @@ Value listunspent(const Array& params, bool fHelp)
         entry.push_back(Pair("scriptPubKey", HexStr(pk.begin(), pk.end())));
         entry.push_back(Pair("amount",ValueFromAmount(nValue)));
         if (out.tx->IsFrozen() && out.tx->nLockTime >= LOCKTIME_THRESHOLD)
-        {
-            time_t ts = (time_t)out.tx->nLockTime;
-            char timestr[64];
-            strftime(timestr,sizeof(timestr),"%F %T",localtime(&ts));
-            entry.push_back(Pair("frozen", timestr));         
-        }
+            entry.push_back(Pair("frozen", DateTimeStrFormat(out.tx->nLockTime)));         
         entry.push_back(Pair("confirmations",out.nDepth));
         results.push_back(entry);
     }
@@ -2915,10 +2910,7 @@ Value createrawtransaction(const Array& params, bool fHelp)
 
     if (params.size() == 3)
     {
-        struct tm tm;
-        memset(&tm, 0, sizeof(struct tm));
-        if (!strptime(params[2].get_str().c_str(), "%Y-%m-%d %H:%M:%S", &tm))
-            throw JSONRPCError(-8, "Invalid frozentime format");
+        struct tm tm = DateTimeFromStr(params[2].get_str()); 
         rawTx.nLockTime = mktime(&tm);
     }
 
@@ -3353,10 +3345,7 @@ Value getfrozen(const Array& params, bool fHelp)
         if ((int64)(*it).first < LOCKTIME_THRESHOLD || (*it).second == 0)
             continue;        
         
-        time_t ts = (time_t)(*it).first;
-        char timestr[64];
-        strftime(timestr,sizeof(timestr),"%F %T",localtime(&ts));
-        entry.push_back(Pair("unlock", timestr)); 
+        entry.push_back(Pair("unlock", DateTimeStrFormat((*it).first))); 
         entry.push_back(Pair("amount", ValueFromAmount((*it).second))); 
         results.push_back(entry);
     }
@@ -4080,7 +4069,7 @@ Array RPCConvertValues(const std::string &strMethod, const std::vector<std::stri
     if (strMethod == "listunspent"            && n > 1) ConvertTo<boost::int64_t>(params[1]);
     if (strMethod == "listunspent"            && n > 2) ConvertTo<Array>(params[2]);
     if (strMethod == "getrawtransaction"      && n > 1) ConvertTo<boost::int64_t>(params[1]);
-    if (strMethod == "purgependingtx"      	  && n > 1) ConvertTo<boost::int64_t>(params[1]);
+    if (strMethod == "purgependingtx"         && n > 1) ConvertTo<boost::int64_t>(params[1]);
     if (strMethod == "createrawtransaction"   && n > 0) ConvertTo<Array>(params[0]);
     if (strMethod == "createrawtransaction"   && n > 1) ConvertTo<Object>(params[1]);
     if (strMethod == "signrawtransaction"     && n > 1) ConvertTo<Array>(params[1]);
