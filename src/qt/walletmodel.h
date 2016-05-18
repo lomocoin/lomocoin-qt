@@ -2,7 +2,8 @@
 #define WALLETMODEL_H
 
 #include <QObject>
-
+#include <map>
+#include "wallet.h"
 #include "allocators.h" /* for SecureString */
 
 class OptionsModel;
@@ -52,6 +53,10 @@ public:
     qint64 getBalance() const;
     qint64 getStake() const;
     qint64 getUnconfirmedBalance() const;
+    qint64 getFrozenBalance() const;
+    qint64 getMintingOnlyBalance() const;
+    int getFrozenCoins(std::map<unsigned int,int64>& frozenCoins);    
+    
     int getNumTransactions() const;
     EncryptionStatus getEncryptionStatus() const;
 
@@ -117,11 +122,13 @@ private:
     qint64 cachedBalance;
     qint64 cachedUnconfirmedBalance;
     qint64 cachedNumTransactions;
+    qint64 cachedFrozenBalance;
+    qint64 cachedMintingOnlyBalance;
     EncryptionStatus cachedEncryptionStatus;
 
 signals:
     // Signal that balance in wallet changed
-    void balanceChanged(qint64 balance, qint64 stake, qint64 unconfirmedBalance);
+    void balanceChanged(qint64 balance, qint64 stake, qint64 unconfirmedBalance,qint64 frozenBalance,qint64 mintingonlyBalance);
 
     // Number of transactions in wallet changed
     void numTransactionsChanged(int count);

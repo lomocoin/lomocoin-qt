@@ -10,6 +10,7 @@
 #include "guiconstants.h"
 
 #include <QAbstractItemDelegate>
+#include <QTableView>
 #include <QPainter>
 
 #define DECORATION_SIZE 64
@@ -95,7 +96,10 @@ OverviewPage::OverviewPage(QWidget *parent) :
     currentBalance(-1),
     currentStake(0),
     currentUnconfirmedBalance(-1),
-    txdelegate(new TxViewDelegate())
+    currentFrozenBalance(-1),
+    currentMintingOnlyBalance(-1),
+    txdelegate(new TxViewDelegate()),
+    tableModel(new QStandardItemModel())
 {
     ui->setupUi(this);
 
@@ -114,6 +118,16 @@ OverviewPage::OverviewPage(QWidget *parent) :
     ui->labelUnconfirmed->setToolTip(tr("Total of transactions that have yet to be confirmed, and do not yet count toward the current balance"));
     ui->labelUnconfirmed->setTextInteractionFlags(Qt::TextSelectableByMouse|Qt::TextSelectableByKeyboard);
 
+    // Frozen balance: <balance>
+    ui->labelFrozen->setFont(QFont("Monospace", -1, QFont::Bold));
+    ui->labelFrozen->setToolTip(tr("Your current frozen balance"));
+    ui->labelFrozen->setTextInteractionFlags(Qt::TextSelectableByMouse|Qt::TextSelectableByKeyboard);
+
+    // MintingOnly balance: <balance>
+    ui->labelMintingOnly->setFont(QFont("Monospace", -1, QFont::Bold));
+    ui->labelMintingOnly->setToolTip(tr("Your current minting only balance"));
+    ui->labelMintingOnly->setTextInteractionFlags(Qt::TextSelectableByMouse|Qt::TextSelectableByKeyboard);
+
     ui->labelNumTransactions->setToolTip(tr("Total number of transactions in wallet"));
 
     // Recent transactions
@@ -125,6 +139,17 @@ OverviewPage::OverviewPage(QWidget *parent) :
     ui->listTransactions->setAttribute(Qt::WA_MacShowFocusRect, false);
 
     connect(ui->listTransactions, SIGNAL(clicked(QModelIndex)), this, SIGNAL(transactionClicked(QModelIndex)));
+
+    // Froze coins
+    tableModel->setColumnCount(2);
+    tableModel->setHeaderData(0,Qt::Horizontal,tr("Unlock Time"));
+    tableModel->setHeaderData(1,Qt::Horizontal,tr("Amount (LMC)"));
+    ui->tableFrozenCoins->setModel(tableModel);
+    ui->tableFrozenCoins->horizontalHeader()->resizeSection(0,240);
+    ui->tableFrozenCoins->horizontalHeader()->setResizeMode(1,QHeaderView::Stretch);
+    ui->tableFrozenCoins->setTabKeyNavigation(false);
+    ui->tableFrozenCoins->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->tableFrozenCoins->setSelectionBehavior(QAbstractItemView::SelectRows);
 }
 
 OverviewPage::~OverviewPage()
@@ -132,15 +157,35 @@ OverviewPage::~OverviewPage()
     delete ui;
 }
 
-void OverviewPage::setBalance(qint64 balance, qint64 stake, qint64 unconfirmedBalance)
+void OverviewPage::setBalance(qint64 balance, qint64 stake, qint64 unconfirmedBalance, qint64 frozenBalance, qint64 mintingonlyBalance)
 {
     int unit = model->getOptionsModel()->getDisplayUnit();
     currentBalance = balance;
     currentStake = stake;
     currentUnconfirmedBalance = unconfirmedBalance;
+    currentFrozenBalance = frozenBalance;
+    currentMintingOnlyBalance = mintingonlyBalance;
     ui->labelBalance->setText(BitcoinUnits::formatWithUnit(unit, balance));
     ui->labelStake->setText(BitcoinUnits::formatWithUnit(unit, stake));
     ui->labelUnconfirmed->setText(BitcoinUnits::formatWithUnit(unit, unconfirmedBalance));
+    ui->labelFrozen->setText(BitcoinUnits::formatWithUnit(unit, frozenBalance));
+    ui->labelMintingOnly->setText(BitcoinUnits::formatWithUnit(unit, mintingonlyBalance));
+
+    std::map<unsigned int,int64> frozenCoins;
+    model->getFrozenCoins(frozenCoins);
+    tableModel->removeRows(0,tableModel->rowCount());   
+    int row = 0;
+    for (std::map<unsigned int,int64>::const_iterator it = frozenCoins.begin(); it != frozenCoins.end(); ++it)
+    {
+        if ((int64)(*it).first < LOCKTIME_THRESHOLD || (*it).second == 0)
+            continue;
+        char psztime[64];
+        time_t t = (*it).first;
+        strftime(psztime,64,"%F %T",localtime(&t));
+        tableModel->setItem(row,0,new QStandardItem(psztime));
+        tableModel->setItem(row,1,new QStandardItem(BitcoinUnits::format(BitcoinUnits::BTC, (*it).second,false)));
+        row++;
+    }
 }
 
 void OverviewPage::setNumTransactions(int count)
@@ -165,8 +210,8 @@ void OverviewPage::setModel(WalletModel *model)
         ui->listTransactions->setModelColumn(TransactionTableModel::ToAddress);
 
         // Keep up to date with wallet
-        setBalance(model->getBalance(), model->getStake(), model->getUnconfirmedBalance());
-        connect(model, SIGNAL(balanceChanged(qint64, qint64, qint64)), this, SLOT(setBalance(qint64, qint64, qint64)));
+        setBalance(model->getBalance(), model->getStake(), model->getUnconfirmedBalance(), model->getFrozenBalance(), model->getMintingOnlyBalance());
+        connect(model, SIGNAL(balanceChanged(qint64, qint64, qint64, qint64, qint64)), this, SLOT(setBalance(qint64, qint64, qint64, qint64, qint64)));
 
         setNumTransactions(model->getNumTransactions());
         connect(model, SIGNAL(numTransactionsChanged(int)), this, SLOT(setNumTransactions(int)));
@@ -180,7 +225,7 @@ void OverviewPage::displayUnitChanged()
     if(!model || !model->getOptionsModel())
         return;
     if(currentBalance != -1)
-        setBalance(currentBalance, currentStake, currentUnconfirmedBalance);
+        setBalance(currentBalance, currentStake, currentUnconfirmedBalance, currentFrozenBalance, currentMintingOnlyBalance);
 
     txdelegate->unit = model->getOptionsModel()->getDisplayUnit();
     ui->listTransactions->update();
