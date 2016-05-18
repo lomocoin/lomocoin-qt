@@ -16,17 +16,17 @@ CONFIG += static
 #    BOOST_LIB_PATH, BDB_INCLUDE_PATH, BDB_LIB_PATH
 #    OPENSSL_INCLUDE_PATH and OPENSSL_LIB_PATH respectively
 
-BOOST_LIB_SUFFIX=-mgw49-mt-s-1_52
-BOOST_INCLUDE_PATH=d:/deps/boost_1_52_0
-BOOST_LIB_PATH=d:/deps/boost_1_52_0/stage/lib
-BDB_INCLUDE_PATH=d:/deps/db-4.8.30.NC/build_unix
-BDB_LIB_PATH=d:/deps/db-4.8.30.NC/build_unix
-OPENSSL_INCLUDE_PATH=d:/deps/openssl-1.0.1l/include
-OPENSSL_LIB_PATH=d:/deps/openssl-1.0.1l
-MINIUPNPC_INCLUDE_PATH=d:/deps/
-MINIUPNPC_LIB_PATH=d:/deps/miniupnpc
-QRENCODE_INCLUDE_PATH=d:/deps/qrencode-3.4.4
-QRENCODE_LIB_PATH=d:/deps/qrencode-3.4.4/.libs
+#BOOST_LIB_SUFFIX=-mgw49-mt-s-1_52
+#BOOST_INCLUDE_PATH=d:/deps/boost_1_52_0
+#BOOST_LIB_PATH=d:/deps/boost_1_52_0/stage/lib
+#BDB_INCLUDE_PATH=d:/deps/db-4.8.30.NC/build_unix
+#BDB_LIB_PATH=d:/deps/db-4.8.30.NC/build_unix
+#OPENSSL_INCLUDE_PATH=d:/deps/openssl-1.0.1l/include
+#OPENSSL_LIB_PATH=d:/deps/openssl-1.0.1l
+#MINIUPNPC_INCLUDE_PATH=d:/deps/
+#MINIUPNPC_LIB_PATH=d:/deps/miniupnpc
+#QRENCODE_INCLUDE_PATH=d:/deps/qrencode-3.4.4
+#QRENCODE_LIB_PATH=d:/deps/qrencode-3.4.4/.libs
 
 OBJECTS_DIR = build
 MOC_DIR = build
