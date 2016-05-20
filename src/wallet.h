@@ -110,17 +110,20 @@ public:
 
     std::map<uint256, CWalletTx> mapWallet;
     std::vector<uint256> vWalletUpdated;
-
     std::map<uint256, int> mapRequestCount;
-
     std::map<CTxDestination, std::string> mapAddressBook;
-
+    std::set<std::pair<CWalletTx *, unsigned int> > setUTXO;
+    std::map<CTxDestination, std::set<std::pair<CWalletTx *, unsigned int> > > mapAddressUTXO;
+    
     CPubKey vchDefaultKey;
 
     // check whether we are allowed to upgrade (or already support) to the named feature
     bool CanSupportFeature(enum WalletFeature wf) { return nWalletMaxVersion >= wf; }
 
-    void AvailableCoins(unsigned int nSpendTime, std::vector<COutput>& vCoins, bool fOnlyConfirmed=true, bool fMintingOnly=false, bool fMultiSig=false) const;
+    int64 AvailableCoins(unsigned int nSpendTime, std::vector<COutput>& vCoins, 
+                         bool fOnlyConfirmed=true, bool fMintingOnly=false, bool fMultiSig=false, bool fAllowFroze=true) const;
+    int64 AvailableAddressCoins(const CTxDestination& destAddress,unsigned int nSpendTime, std::vector<COutput>& vCoins, 
+                                bool fOnlyConfirmed=true, bool fMintingOnly=false, bool fAllowFroze=true) const;
     bool SelectCoinsMinConf(int64 nTargetValue, int nConfMine, int nConfTheirs, std::vector<COutput> vCoins, std::set<std::pair<const CWalletTx*,unsigned int> >& setCoinsRet, int64& nValueRet) const;
 
     // keystore implementation
@@ -337,6 +340,9 @@ public:
 
     void FixSpentCoins(int& nMismatchSpent, int64& nBalanceInQuestion, bool fCheckOnly = false);
     void DisableTransaction(const CTransaction &tx);
+    
+    void UpdateUnspentOutput(CWalletTx& wtx,int nOut,bool fRemoveAny = false);
+    void UpdateUnspentOutputs(CWalletTx& wtx,bool fRemoveAny = false);
 };
 
 /** A key allocated from the key pool. */

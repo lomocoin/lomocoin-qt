@@ -2850,22 +2850,28 @@ Value listunspent(const Array& params, bool fHelp)
     }
 
     Array results;
+
     vector<COutput> vecOutputs;
-    pwalletMain->AvailableCoins((unsigned int)GetAdjustedTime(), vecOutputs, false, false, true);
+    unsigned int nSpendTime = (unsigned int)GetAdjustedTime();
+    if (setAddress.empty())
+    {
+        pwalletMain->AvailableCoins(nSpendTime, vecOutputs, false, false, true);
+    }
+    else
+    {
+        BOOST_FOREACH(const CBitcoinAddress destAddress,setAddress)
+        {
+            vector<COutput> vCoins;
+            pwalletMain->AvailableAddressCoins(destAddress.Get(),nSpendTime, vCoins, false);
+            if (!vCoins.empty())
+                vecOutputs.insert(vecOutputs.end(),vCoins.begin(),vCoins.end());
+        }
+    }
+
     BOOST_FOREACH(const COutput& out, vecOutputs)
     {
         if (out.nDepth < nMinDepth || out.nDepth > nMaxDepth)
             continue;
-
-        if(setAddress.size())
-        {
-            CTxDestination address;
-            if(!ExtractDestination(out.tx->vout[out.i].scriptPubKey, address))
-                continue;
-
-            if (!setAddress.count(address))
-                continue;
-        }
 
         int64 nValue = out.tx->vout[out.i].nValue;
         const CScript& pk = out.tx->vout[out.i].scriptPubKey;
