@@ -955,7 +955,7 @@ Value settxfee(const Array& params, bool fHelp)
             "Minimum and default transaction fee per KB is 1 cent");
 
     nTransactionFee = AmountFromValue(params[0]);
-    nTransactionFee = (nTransactionFee / CENT) * CENT;  // round to cent
+    nTransactionFee = (nTransactionFee / MIN_TX_FEE) * MIN_TX_FEE;  // round to cent
     return true;
 }
 
