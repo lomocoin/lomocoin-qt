@@ -442,7 +442,10 @@ bool AppInit2(int argc, char* argv[])
 
     CBlockIndex *pindexRescan = pindexBest;
     if (GetBoolArg("-rescan"))
+    {
         pindexRescan = pindexGenesisBlock;
+        pwalletMain->mapWallet.clear();
+    }
     else
     {
         CWalletDB walletdb("wallet.dat");

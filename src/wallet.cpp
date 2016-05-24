@@ -2170,17 +2170,44 @@ void CWallet::FixSpentCoins(int& nMismatchFound, int64& nBalanceInQuestion, bool
 
     LOCK(cs_wallet);
     vector<CWalletTx*> vCoins;
+    set<CWalletTx*> vInvalid;
     vCoins.reserve(mapWallet.size());
     for (map<uint256, CWalletTx>::iterator it = mapWallet.begin(); it != mapWallet.end(); ++it)
         vCoins.push_back(&(*it).second);
 
     CTxDB txdb("r");
+
     BOOST_FOREACH(CWalletTx* pcoin, vCoins)
     {
         // Find the corresponding transaction index
         CTxIndex txindex;
         if (!txdb.ReadTxIndex(pcoin->GetHash(), txindex))
+        {
+            if (!pcoin->CheckInputs(txdb))
+            {
+                nMismatchFound++;
+                nBalanceInQuestion += pcoin->GetValueOut();
+                vInvalid.insert(pcoin);
+                if (!fCheckOnly)
+                {
+                    UpdateUnspentOutputs(*pcoin,true);
+                    uint256 hash = pcoin->GetHash();
+                    if (mempool.exists(hash))
+                        mempool.remove(*pcoin);
+                    if (mapWallet.erase(hash))
+                        CWalletDB(strWalletFile).EraseTx(hash);
+                }
+            }
+        }
+    }
+
+    BOOST_FOREACH(CWalletTx* pcoin, vCoins)
+    {
+        // Find the corresponding transaction index
+        CTxIndex txindex;
+        if (vInvalid.count(pcoin) || !txdb.ReadTxIndex(pcoin->GetHash(), txindex))
             continue;
+
         for (int n=0; n < pcoin->vout.size(); n++)
         {
             if (IsMine(pcoin->vout[n]) && pcoin->IsSpent(n) && (txindex.vSpent.size() <= n || txindex.vSpent[n].IsNull()))
@@ -2193,6 +2220,7 @@ void CWallet::FixSpentCoins(int& nMismatchFound, int64& nBalanceInQuestion, bool
                 {
                     pcoin->MarkUnspent(n);
                     pcoin->WriteToDisk();
+                    UpdateUnspentOutput(*pcoin,n);
                 }
             }
             else if (IsMine(pcoin->vout[n]) && !pcoin->IsSpent(n) && (txindex.vSpent.size() > n && !txindex.vSpent[n].IsNull()))
@@ -2205,11 +2233,10 @@ void CWallet::FixSpentCoins(int& nMismatchFound, int64& nBalanceInQuestion, bool
                 {
                     pcoin->MarkSpent(n);
                     pcoin->WriteToDisk();
+                    UpdateUnspentOutput(*pcoin,n);
                 }
             }
-
-            UpdateUnspentOutput(*pcoin,n);
-        }
+        }                        
     }
 }
 

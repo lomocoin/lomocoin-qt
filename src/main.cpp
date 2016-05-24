@@ -535,6 +535,69 @@ bool CTransaction::CheckTransaction() const
     return true;
 }
 
+bool CTransaction::CheckInputs(CTxDB& txdb)
+{
+    if (IsCoinBase())
+    {
+        return true;
+    }
+
+    MapPrevTx mapInputs;
+    map<uint256, CTxIndex> mapUnused;
+    bool fInvalid = false;
+    if (!FetchInputs(txdb, mapUnused, false, false, mapInputs, fInvalid))
+    {
+        if (fInvalid)
+            return error("CheckInputs() : FetchInputs found invalid tx %s", GetHash().ToString().substr(0,10).c_str());
+        return error("CheckInputs() : FetchInputs failed %s", GetHash().ToString().substr(0,10).c_str());
+    }
+
+    // Check for non-standard pay-to-script-hash in inputs
+    if (!AreInputsStandard(mapInputs) && !fTestNet)
+        return error("CheckInputs() : nonstandard transaction input");
+
+    if (IsCoinStake())
+    {
+        // lomocoin: coin stake tx earns reward instead of paying fee
+        uint64 nCoinAge;
+        if (!GetCoinAge(txdb, nCoinAge))
+            return error("CheckInputs() : %s unable to get coin age for coinstake", GetHash().ToString().substr(0,10).c_str());
+        int64 nStakeReward = GetValueOut() - GetValueIn(mapInputs);
+        if (nStakeReward > GetProofOfStakeReward(nCoinAge) - GetMinFee() + MIN_TX_FEE)
+            return error("CheckInputs() : %s stake reward exceeded", GetHash().ToString().substr(0,10).c_str());
+        if (nStakeReward < 0)
+            return error("CheckInputs() : %s stake reward invalid", GetHash().ToString().substr(0,10).c_str());        
+    }
+    else
+    {
+        int64 nFees = GetValueIn(mapInputs) - GetValueOut();
+        if (nFees < MIN_TX_FEE)
+            return error("CheckInputs() : not enough fees");
+    }
+    
+    for (unsigned int i = 0; i < vin.size(); i++)
+    {
+        COutPoint prevout = vin[i].prevout;
+        CTransaction& txPrev = mapInputs[prevout.hash].second;
+
+        // Verify signature
+        if (!VerifySignature(txPrev, *this, i, true, 0))
+        {
+            return error("CheckInputs() : %s VerifySignature failed", GetHash().ToString().substr(0,10).c_str());
+        }
+     
+        if (txPrev.IsFrozen())
+        {
+            if (!IsCoinStake())
+                return error("CheckInputs() : %s prev tx is frozen",GetHash().ToString().substr(0,10).c_str());
+            else if (nLockTime != txPrev.nLockTime)
+                return error("CheckInputs() : %s invalid nLockTime from prev tx",GetHash().ToString().substr(0,10).c_str());
+        }
+    } 
+
+    return true;
+}
+
 bool CTxMemPool::accept(CTxDB& txdb, CTransaction &tx, bool fCheckInputs,
                         bool* pfMissingInputs)
 {
