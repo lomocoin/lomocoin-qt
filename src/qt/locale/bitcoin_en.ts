@@ -910,33 +910,68 @@ Address: %4
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../forms/overviewpage.ui" line="40"/>
-        <source>Balance:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <location filename="../forms/overviewpage.ui" line="47"/>
-        <source>123.456 BTC</source>
+        <source>Wallet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../forms/overviewpage.ui" line="54"/>
-        <source>Number of transactions:</source>
+        <source>Balance:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../forms/overviewpage.ui" line="61"/>
-        <source>0</source>
+        <source>123.456 BTC</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../forms/overviewpage.ui" line="68"/>
-        <source>Unconfirmed:</source>
+        <source>Stake:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../forms/overviewpage.ui" line="75"/>
         <source>0 BTC</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../forms/overviewpage.ui" line="82"/>
+        <source>Unconfirmed:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../forms/overviewpage.ui" line="89"/>
+        <source>123.456 BTC</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../forms/overviewpage.ui" line="96"/>
+        <source>Frozen:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../forms/overviewpage.ui" line="103"/>
+        <source>123.456 BTC</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../forms/overviewpage.ui" line="110"/>
+        <source>MintingOnly:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../forms/overviewpage.ui" line="117"/>
+        <source>123.456 BTC</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../forms/overviewpage.ui" line="124"/>
+        <source>Number of transactions:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../forms/overviewpage.ui" line="131"/>
+        <source>0</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -966,6 +1001,16 @@ p, li { white-space: pre-wrap; }
     <message>
         <location filename="../overviewpage.cpp" line="111"/>
         <source>Total number of transactions in wallet</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../overviewpage.cpp" line="145"/>
+        <source>Unlock Time</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../overviewpage.cpp" line="146"/>
+        <source>Amount (LMC)</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

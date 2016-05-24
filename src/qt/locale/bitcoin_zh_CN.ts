@@ -897,34 +897,69 @@ Address: %4
         <translation>表单</translation>
     </message>
     <message>
-        <location filename="../forms/overviewpage.ui" line="40"/>
-        <source>Balance:</source>
-        <translation>余额</translation>
+        <location filename="../forms/overviewpage.ui" line="47"/>
+        <source>Wallet</source>
+        <translation>钱包</translation>
     </message>
     <message>
-        <location filename="../forms/overviewpage.ui" line="47"/>
+        <location filename="../forms/overviewpage.ui" line="54"/>
+        <source>Balance:</source>
+        <translation>余额：</translation>
+    </message>
+    <message>
+        <location filename="../forms/overviewpage.ui" line="61"/>
         <source>123.456 BTC</source>
         <translation>123.456 BTC</translation>
     </message>
     <message>
-        <location filename="../forms/overviewpage.ui" line="54"/>
-        <source>Number of transactions:</source>
-        <translation>交易笔数</translation>
-    </message>
-    <message>
-        <location filename="../forms/overviewpage.ui" line="61"/>
-        <source>0</source>
-        <translation>0</translation>
-    </message>
-    <message>
         <location filename="../forms/overviewpage.ui" line="68"/>
-        <source>Unconfirmed:</source>
-        <translation>未确认：</translation>
+        <source>Stake:</source>
+        <translation>利息：</translation>
     </message>
     <message>
         <location filename="../forms/overviewpage.ui" line="75"/>
         <source>0 BTC</source>
         <translation>0 BTC</translation>
+    </message>
+    <message>
+        <location filename="../forms/overviewpage.ui" line="82"/>
+        <source>Unconfirmed:</source>
+        <translation>未确认：</translation>
+    </message>
+    <message>
+        <location filename="../forms/overviewpage.ui" line="89"/>
+        <source>123.456 BTC</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../forms/overviewpage.ui" line="96"/>
+        <source>Frozen:</source>
+        <translation>冻结：</translation>
+    </message>
+    <message>
+        <location filename="../forms/overviewpage.ui" line="103"/>
+        <source>123.456 BTC</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../forms/overviewpage.ui" line="110"/>
+        <source>MintingOnly:</source>
+        <translation>冷钱包余额：</translation>
+    </message>
+    <message>
+        <location filename="../forms/overviewpage.ui" line="117"/>
+        <source>123.456 BTC</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../forms/overviewpage.ui" line="124"/>
+        <source>Number of transactions:</source>
+        <translation>交易笔数：</translation>
+    </message>
+    <message>
+        <location filename="../forms/overviewpage.ui" line="131"/>
+        <source>0</source>
+        <translation>0</translation>
     </message>
     <message>
         <location filename="../forms/overviewpage.ui" line="82"/>
@@ -959,6 +994,17 @@ p, li { white-space: pre-wrap; }
         <source>Total number of transactions in wallet</source>
         <translation>钱包总交易数量</translation>
     </message>
+    <message>
+        <location filename="../overviewpage.cpp" line="145"/>
+        <source>Unlock Time</source>
+        <translation>解冻时间</translation>
+    </message>
+    <message>
+        <location filename="../overviewpage.cpp" line="146"/>
+        <source>Amount (LMC)</source>
+        <translation>数量 (LMC)</translation>
+    </message>
+
 </context>
 <context>
     <name>QRCodeDialog</name>
