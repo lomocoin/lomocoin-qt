@@ -1045,7 +1045,7 @@ int64 CWallet::GetNewMint() const
 
 // populate vCoins with vector of spendable (age, (value, (transaction, output_number))) outputs
 int64 CWallet::AvailableCoins(unsigned int nSpendTime, vector<COutput>& vCoins,
-                             bool fOnlyConfirmed, bool fMintingOnly, bool fMultiSig, bool fAllowFroze) const
+                             bool fOnlyConfirmed, bool fMintingOnly, bool fMultiSig, bool fAllowFrozen) const
 {
     int64 nTotal = 0;
     vCoins.clear();
@@ -1059,7 +1059,7 @@ int64 CWallet::AvailableCoins(unsigned int nSpendTime, vector<COutput>& vCoins,
             if (!pcoin->IsFinal())
                 continue;
  
-            if (!fAllowFroze && pcoin->IsFrozen())
+            if (!fAllowFrozen && pcoin->IsFrozen())
                 continue;
 
             if (fOnlyConfirmed && !pcoin->IsConfirmed())
@@ -1085,7 +1085,7 @@ int64 CWallet::AvailableCoins(unsigned int nSpendTime, vector<COutput>& vCoins,
 }
 
 int64 CWallet::AvailableAddressCoins(const CTxDestination& destAddress,unsigned int nSpendTime, std::vector<COutput>& vCoins,
-                                    bool fOnlyConfirmed, bool fMintingOnly, bool fAllowFroze) const
+                                    bool fOnlyConfirmed, bool fMintingOnly, bool fAllowFrozen) const
 {
     int64 nTotal = 0;
     vCoins.clear();
@@ -1102,7 +1102,7 @@ int64 CWallet::AvailableAddressCoins(const CTxDestination& destAddress,unsigned 
                 if (!pcoin->IsFinal())
                     continue;
 
-                if (!fAllowFroze && pcoin->IsFrozen())
+                if (!fAllowFrozen && pcoin->IsFrozen())
                     continue;
 
                 if (fOnlyConfirmed && !pcoin->IsConfirmed())

@@ -2896,6 +2896,56 @@ Value listunspent(const Array& params, bool fHelp)
     return results;
 }
 
+Value listmintingonly(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() > 1)
+        throw runtime_error(
+            "listmintingonly <\"address\">\n"
+            "Returns array of mintingonly transaction outputs\n"
+            "Optionally filtered to only include txouts paid to specified addresses.\n"
+            "Results are an array of Objects, each of which has:\n"
+            "{txid, vout, scriptPubKey, amount, confirmations}");
+
+    Array results;
+
+    vector<COutput> vecOutputs;
+    unsigned int nSpendTime = (unsigned int)GetAdjustedTime();
+    if (params.size() == 0)
+    {
+        pwalletMain->AvailableCoins(nSpendTime, vecOutputs, true, true, false, true);
+    }
+    else
+    {
+        CBitcoinAddress address(params[0].get_str());
+        if (!address.IsValid())
+            throw JSONRPCError(-5, string("Invalid Bitcoin address: ")+params[0].get_str());
+        pwalletMain->AvailableAddressCoins(address.Get(), nSpendTime, vecOutputs, true, true, true);
+    }
+
+    BOOST_FOREACH(const COutput& out, vecOutputs)
+    {
+        int64 nValue = out.tx->vout[out.i].nValue;
+        const CScript& pk = out.tx->vout[out.i].scriptPubKey;
+        CTxDestination address;
+        Object entry;
+        entry.push_back(Pair("txid", out.tx->GetHash().GetHex()));
+        entry.push_back(Pair("vout", out.i));
+        if (ExtractDestination(pk, address))
+        {
+            entry.push_back(Pair("address", CBitcoinAddress(address).ToString()));
+            if (pwalletMain->mapAddressBook.count(address))
+                entry.push_back(Pair("account", pwalletMain->mapAddressBook[address]));
+        }
+        entry.push_back(Pair("scriptPubKey", HexStr(pk.begin(), pk.end())));
+        entry.push_back(Pair("amount",ValueFromAmount(nValue)));
+        if (out.tx->IsFrozen() && out.tx->nLockTime >= LOCKTIME_THRESHOLD)
+            entry.push_back(Pair("frozen", DateTimeStrFormat(out.tx->nLockTime)));         
+        entry.push_back(Pair("confirmations",out.nDepth));
+        results.push_back(entry);
+    }
+
+    return results;
+}
 Value createrawtransaction(const Array& params, bool fHelp)
 {
     if (fHelp || params.size() < 2 || params.size() > 3)
@@ -3545,6 +3595,7 @@ static const CRPCCommand vRPCCommands[] =
     { "getaddressinfo",         &getaddressinfo,         true },
     { "getfrozen",              &getfrozen,              false},
     { "mergeaddress",           &mergeaddress,           false},
+    { "listmintingonly",        &listmintingonly,        false},
 };
 
 CRPCTable::CRPCTable()

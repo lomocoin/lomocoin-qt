@@ -186,8 +186,10 @@ bool AppInit2(int argc, char* argv[])
           _("Options:") + "\n" +
             "  -conf=<file>     \t\t  " + _("Specify configuration file (default: lomocoin.conf)") + "\n" +
             "  -pid=<file>      \t\t  " + _("Specify pid file (default: lomocoind.pid)") + "\n" +
-            "  -gen             \t\t  " + _("Generate coins") + "\n" +
-            "  -gen=0           \t\t  " + _("Don't generate coins") + "\n" +
+            "  -gen             \t\t  " + _("Generate coins(POW)") + "\n" +
+            "  -gen=0           \t\t  " + _("Don't generate coins(POW)") + "\n" +
+            "  -stake           \t\t  " + _("Generate coins(POS)") + "\n" +
+            "  -stake=0         \t\t  " + _("Don't generate coins(POS)") + "\n" +
             "  -min             \t\t  " + _("Start minimized") + "\n" +
             "  -splash          \t\t  " + _("Show splash screen on startup (default: 1)") + "\n" +
             "  -datadir=<dir>   \t\t  " + _("Specify data directory") + "\n" +

@@ -121,9 +121,9 @@ public:
     bool CanSupportFeature(enum WalletFeature wf) { return nWalletMaxVersion >= wf; }
 
     int64 AvailableCoins(unsigned int nSpendTime, std::vector<COutput>& vCoins, 
-                         bool fOnlyConfirmed=true, bool fMintingOnly=false, bool fMultiSig=false, bool fAllowFroze=true) const;
+                         bool fOnlyConfirmed=true, bool fMintingOnly=false, bool fMultiSig=false, bool fAllowFrozen=true) const;
     int64 AvailableAddressCoins(const CTxDestination& destAddress,unsigned int nSpendTime, std::vector<COutput>& vCoins, 
-                                bool fOnlyConfirmed=true, bool fMintingOnly=false, bool fAllowFroze=true) const;
+                                bool fOnlyConfirmed=true, bool fMintingOnly=false, bool fAllowFrozen=true) const;
     bool SelectCoinsMinConf(int64 nTargetValue, int nConfMine, int nConfTheirs, std::vector<COutput> vCoins, std::set<std::pair<const CWalletTx*,unsigned int> >& setCoinsRet, int64& nValueRet) const;
 
     // keystore implementation
