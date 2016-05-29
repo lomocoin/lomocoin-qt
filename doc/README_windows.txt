@@ -28,7 +28,7 @@ applications if necessary.
 
 The software automatically finds other nodes to connect to.  You can
 enable Universal Plug and Play (UPnP) with your router/firewall
-or forward port 9901 (TCP) to your computer so you can receive
+or forward port 6801 (TCP) to your computer so you can receive
 incoming connections.  LoMoCoin works without incoming connections,
 but allowing incoming connections helps the LoMoCoin network.
 
