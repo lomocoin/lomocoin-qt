@@ -181,7 +181,7 @@ void OverviewPage::setBalance(qint64 balance, qint64 stake, qint64 unconfirmedBa
             continue;
         char psztime[64];
         time_t t = (*it).first;
-        strftime(psztime,64,"%Y-%m-%d %T",localtime(&t));
+        strftime(psztime,64,"%Y-%m-%d %H:%M:%S",localtime(&t));
         tableModel->setItem(row,0,new QStandardItem(psztime));
         tableModel->setItem(row,1,new QStandardItem(BitcoinUnits::format(BitcoinUnits::BTC, (*it).second,false)));
         row++;
