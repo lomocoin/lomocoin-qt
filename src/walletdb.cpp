@@ -330,6 +330,7 @@ void ThreadFlushWalletDB(void* parg)
 {
     const string& strFile = ((const string*)parg)[0];
     static bool fOneThread;
+    bool fCompactWallet = GetBoolArg("-compactwallet", false);
     if (fOneThread)
         return;
     fOneThread = true;
@@ -372,6 +373,12 @@ void ThreadFlushWalletDB(void* parg)
                         printf("Flushing wallet.dat\n");
                         nLastFlushed = nWalletDBUpdated;
                         int64 nStart = GetTimeMillis();
+
+                        if (fCompactWallet)
+                        {
+                            printf("Compacting wallet.dat\n");
+                            CWalletDB(strFile).Compact();
+                        }
 
                         // Flush wallet.dat so it's self contained
                         CloseDb(strFile);

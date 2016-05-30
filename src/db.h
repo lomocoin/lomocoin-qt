@@ -262,6 +262,17 @@ public:
         return Write(std::string("version"), nVersion);
     }
 
+    bool Compact()
+    {
+        if (!pdb)
+            return false;
+        if (fReadOnly)
+            assert(!"Write called on database in read-only mode");
+        if (pdb->compact(NULL,NULL,NULL,NULL,DB_FREE_SPACE,NULL) != 0)
+            return false;
+        return true;
+    }
+
     bool static Rewrite(const std::string& strFile, const char* pszSkip = NULL);
 };
 
