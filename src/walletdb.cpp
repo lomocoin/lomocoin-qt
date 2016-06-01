@@ -47,6 +47,11 @@ bool CWalletDB::WriteAccount(const string& strAccount, const CAccount& account)
     return Write(make_pair(string("acc"), strAccount), account);
 }
 
+bool CWalletDB::EraseAccount(const string& strAccount)
+{
+    return Erase(make_pair(string("acc"), strAccount));
+}
+
 bool CWalletDB::WriteAccountingEntry(const CAccountingEntry& acentry)
 {
     return Write(boost::make_tuple(string("acentry"), acentry.strAccount, ++nAccountingEntryNumber), acentry);

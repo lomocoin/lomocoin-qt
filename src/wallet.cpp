@@ -74,6 +74,95 @@ bool CWallet::AddCScript(const CScript& redeemScript)
     return CWalletDB(strWalletFile).WriteCScript(Hash160(redeemScript), redeemScript);
 }
 
+bool CWallet::RemoveKey(const CKeyID& keyID)
+{
+    CPubKey vchPubKey;
+    string strAccount = "";
+ 
+    if (!GetPubKey(keyID,vchPubKey))
+        return false;
+
+    {
+        LOCK(cs_wallet);
+        map<CTxDestination, string>::const_iterator mi = mapAddressBook.find(keyID);
+        if (mi != mapAddressBook.end())
+            strAccount = (*mi).second;
+
+        if (strAccount == "")
+        {
+            if (vchDefaultKey == vchPubKey)
+            {
+                CPubKey newDefaultKey;
+                if (!GetKeyFromPool(newDefaultKey, false))
+                    return false;
+                SetDefaultKey(newDefaultKey);
+                SetAddressBookName(vchDefaultKey.GetID(), "");
+            }
+        }
+
+        DelAddressBookName(keyID);
+   
+        if (!CCryptoKeyStore::RemoveKey(keyID))
+            return false;
+    
+        if (!fFileBacked)
+            return true;
+        
+        if (strAccount != "")
+        {
+            CWalletDB(strWalletFile).EraseAccount(strAccount);
+        }
+        else
+        {
+            CWalletDB walletdb(strWalletFile);
+            CAccount account;
+            walletdb.ReadAccount(strAccount, account);
+            if (account.vchPubKey == vchPubKey)
+            {
+                if (!GetKeyFromPool(account.vchPubKey, false))
+                    return false;
+                SetAddressBookName(account.vchPubKey.GetID(), "");
+                walletdb.WriteAccount(strAccount, account);
+            }
+        }        
+ 
+        if (!IsCrypted())
+            return CWalletDB(strWalletFile).EraseKey(vchPubKey);
+        else if (pwalletdbEncryption)
+            return pwalletdbEncryption->EraseCryptedKey(vchPubKey);
+        else
+            return CWalletDB(strWalletFile).EraseCryptedKey(vchPubKey);
+    }
+    return false;
+}
+
+bool CWallet::RemoveCScript(const CScriptID& scriptID)
+{
+    string strAccount = "";
+    {
+        LOCK(cs_wallet);
+        map<CTxDestination, string>::const_iterator mi = mapAddressBook.find(scriptID);
+        if (mi != mapAddressBook.end())
+            strAccount = (*mi).second;
+        if (!CCryptoKeyStore::RemoveCScript(scriptID))
+            return false;
+      
+        DelAddressBookName(scriptID);
+
+        if (!fFileBacked)
+            return true;
+
+        if (strAccount != "")
+        {
+            CWalletDB(strWalletFile).EraseAccount(strAccount);
+        }
+       
+        return CWalletDB(strWalletFile).EraseCScript(scriptID);
+    }
+
+    return false;
+}
+
 // lomocoin: optional setting to unlock wallet for block minting only;
 //         serves to disable the trivial sendmoney when OS account compromised
 bool fWalletUnlockMintOnly = false;
@@ -449,6 +538,25 @@ bool CWallet::EraseFromWallet(uint256 hash)
     return true;
 }
 
+void CWallet::WalletEraseUnused()
+{
+    vector<uint256> vEraseHash;
+    {
+        LOCK(cs_wallet);
+    
+        BOOST_FOREACH(PAIRTYPE(const uint256, CWalletTx)& item, mapWallet)
+        {
+            CWalletTx &tx = item.second;
+            if (!IsMine(tx) && !IsFromMe(tx) && !IsMineForMintingOnly(tx) && !IsMineForMultiSig(tx))
+                vEraseHash.push_back(item.first);
+        }
+    }
+
+    BOOST_FOREACH(const uint256 &hash,vEraseHash)
+    {
+        EraseFromWallet(hash);
+    }
+}
 
 bool CWallet::IsMine(const CTxIn &txin) const
 {

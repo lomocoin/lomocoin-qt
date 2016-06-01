@@ -184,6 +184,18 @@ public:
             mi++;
         }
     }
+    
+    bool RemoveKey(const CKeyID& keyID)
+    {   
+        LOCK(cs_KeyStore);
+        return ((!IsCrypted() ? mapKeys.erase(keyID) : mapCryptedKeys.erase(keyID)) != 0);
+    }
+
+    bool RemoveCScript(const CScriptID& scriptID)
+    {
+        LOCK(cs_KeyStore);
+        return (mapScripts.erase(scriptID) != 0);
+    } 
 };
 
 #endif

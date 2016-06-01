@@ -71,6 +71,12 @@ public:
         nWalletDBUpdated++;
         return Write(std::make_pair(std::string("key"), vchPubKey.Raw()), vchPrivKey, false);
     }
+    
+    bool EraseKey(const CPubKey& vchPubKey)
+    {
+        nWalletDBUpdated++;
+        return Erase(std::make_pair(std::string("key"), vchPubKey.Raw()));
+    }
 
     bool WriteCryptedKey(const CPubKey& vchPubKey, const std::vector<unsigned char>& vchCryptedSecret, bool fEraseUnencryptedKey = true)
     {
@@ -83,6 +89,12 @@ public:
             Erase(std::make_pair(std::string("wkey"), vchPubKey.Raw()));
         }
         return true;
+    }
+
+    bool EraseCryptedKey(const CPubKey& vchPubKey)
+    {
+        nWalletDBUpdated++;
+        return Erase(std::make_pair(std::string("ckey"), vchPubKey.Raw()));
     }
 
     bool WriteMasterKey(unsigned int nID, const CMasterKey& kMasterKey)
@@ -102,6 +114,12 @@ public:
     {
         nWalletDBUpdated++;
         return Write(std::make_pair(std::string("cscript"), hash), redeemScript, false);
+    }
+
+    bool EraseCScript(const uint160& hash)
+    {
+        nWalletDBUpdated++;
+        return Erase(std::make_pair(std::string("cscript"), hash));
     }
 
     bool WriteBestBlock(const CBlockLocator& locator)
@@ -170,6 +188,7 @@ public:
 
     bool ReadAccount(const std::string& strAccount, CAccount& account);
     bool WriteAccount(const std::string& strAccount, const CAccount& account);
+    bool EraseAccount(const std::string& strAccount);
     bool WriteAccountingEntry(const CAccountingEntry& acentry);
     int64 GetAccountCreditDebit(const std::string& strAccount);
     void ListAccountCreditDebit(const std::string& strAccount, std::list<CAccountingEntry>& acentries);

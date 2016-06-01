@@ -785,18 +785,25 @@ CBitcoinAddress GetAccountAddress(string strAccount, bool bForceNew=false)
 
 Value getaccountaddress(const Array& params, bool fHelp)
 {
-    if (fHelp || params.size() != 1)
+    if (fHelp || params.size() > 1)
         throw runtime_error(
             "getaccountaddress <account>\n"
             "Returns the current lomocoin address for receiving payments to this account.");
 
     // Parse the account first so we don't generate a key if there's an error
-    string strAccount = AccountFromValue(params[0]);
 
     Value ret;
 
-    ret = GetAccountAddress(strAccount).ToString();
+    if (params.size() == 0)
+    {
+        ret = CBitcoinAddress(pwalletMain->vchDefaultKey.GetID()).ToString();
+    }
+    else
+    {
+        string strAccount = AccountFromValue(params[0]);
 
+        ret = GetAccountAddress(strAccount).ToString();
+    }
     return ret;
 }
 
@@ -3444,6 +3451,79 @@ Value mergeaddress(const Array& params, bool fHelp)
         return ""; 
     return wtx.GetHash().GetHex();
 }
+
+Value scanaddress(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() != 1)
+        throw runtime_error(
+            "scanaddress <address>\n"
+            "Scan blockchain to find information abount given address,\n");
+    
+    CBitcoinAddress address(params[0].get_str());
+    CScript scriptPubKey;
+    if (!address.IsValid())
+        throw JSONRPCError(-5, "Invalid Lomocoin address");
+    scriptPubKey.SetDestination(address.Get());
+    CBlockIndex* pindex = pindexGenesisBlock;
+    int nTx = 0;
+    while (pindex)
+    {
+        CBlock block;
+        block.ReadFromDisk(pindex, true);        
+        BOOST_FOREACH(CTransaction& tx, block.vtx)
+        {            
+            for (int i = 0;i < tx.vout.size();i++)
+            {
+                if (scriptPubKey == tx.vout[i].scriptPubKey)
+                {
+                    nTx++;
+                    break;
+                }
+            }
+        }
+        pindex = pindex->pnext;
+    }
+    return nTx; 
+}
+
+Value removeaddress(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() != 1)
+        throw runtime_error(
+            "removeaddress <lomocoinaddress> \n"
+            "Remove given address from wallet");
+
+    if (pwalletMain->IsLocked())
+        throw JSONRPCError(-13, "Error: Please enter the wallet passphrase with walletpassphrase first.");
+    
+    CBitcoinAddress address(params[0].get_str());
+    if (!address.IsValid())
+        throw JSONRPCError(-3, "Invalid address");
+
+    if (address.IsScript())
+    {
+        CScriptID scriptID;
+        if (!address.GetScriptID(scriptID))
+            throw JSONRPCError(-5, "address does not refer to script");
+        if (!pwalletMain->RemoveCScript(scriptID))
+            throw JSONRPCError(-6, "failed to remove script from wallet");
+    }
+    else
+    {
+        CKeyID keyID;
+        if (!address.GetKeyID(keyID))
+            throw JSONRPCError(-5, "address does not refer to a key");
+        if (!pwalletMain->RemoveKey(keyID))
+            throw JSONRPCError(-6, "failed to remove key from wallet");
+    }
+
+    pwalletMain->WalletEraseUnused();
+
+    MainFrameRepaint();
+
+    return Value::null;
+}
+
 //
 // Call Table
 //
@@ -3522,6 +3602,8 @@ static const CRPCCommand vRPCCommands[] =
     { "getfrozen",              &getfrozen,              false},
     { "mergeaddress",           &mergeaddress,           false},
     { "listmintingonly",        &listmintingonly,        false},
+    { "scanaddress",            &scanaddress,            false},
+    { "removeaddress",          &removeaddress,          false},
 };
 
 CRPCTable::CRPCTable()
