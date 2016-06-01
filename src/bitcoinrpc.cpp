@@ -300,81 +300,6 @@ void TxToJSON(const CTransaction& tx, Object& txdata)
     txdata.push_back(Pair("vout", vouts));
 }
 
-/*
-
-void TxToJSON(const CTransaction& tx, Object& txdata)
-{
-    // tx data
-    txdata.push_back(Pair("txid", tx.GetHash().ToString().c_str()));
-    txdata.push_back(Pair("version", (int)tx.nVersion));
-    txdata.push_back(Pair("locktime", (int)tx.nLockTime));
-    txdata.push_back(Pair("is_coinbase", tx.IsCoinBase()));
-    txdata.push_back(Pair("is_coinstake", tx.IsCoinStake()));
-
-    // add inputs
-    Array vins;
-    BOOST_FOREACH(const CTxIn& txin, tx.vin)
-    {
-        Object vin;
-
-        if (txin.prevout.IsNull()) 
-        {
-            vin.push_back(Pair("coinbase", HexStr(txin.scriptSig).c_str()));
-        }
-        else 
-        {
-            vin.push_back(Pair("txid", txin.prevout.hash.ToString().c_str()));
-            vin.push_back(Pair("vout", (int)txin.prevout.n));
-        }
-
-        vin.push_back(Pair("sequence", (boost::uint64_t)txin.nSequence));
-
-        vins.push_back(vin);
-    }
-    txdata.push_back(Pair("vin", vins));
-
-    // add outputs
-    Array vouts;
-    int n = 0;
-    BOOST_FOREACH(const CTxOut& txout, tx.vout)
-    {
-        Object vout;
-
-        std::vector<CBitcoinAddress> addresses;
-        txnouttype txtype;
-        int nRequired;
-
-        vout.push_back(Pair("value", ValueFromAmount(txout.nValue)));
-        vout.push_back(Pair("n", n));
-
-        Object scriptpubkey;
-
-        scriptpubkey.push_back(Pair("asm", txout.scriptPubKey.ToString()));
-        scriptpubkey.push_back(Pair("hex", HexStr(txout.scriptPubKey.begin(), txout.scriptPubKey.end())));
-
-        if (ExtractAddresses(txout.scriptPubKey, txtype, addresses, nRequired))
-        {
-            scriptpubkey.push_back(Pair("type", GetTxnOutputType(txtype)));
-            scriptpubkey.push_back(Pair("reqSig", nRequired));
-
-            Array addrs;
-            BOOST_FOREACH(const CBitcoinAddress& addr, addresses)
-                addrs.push_back(addr.ToString());
-            scriptpubkey.push_back(Pair("addresses", addrs));
-        }
-        else
-        {
-            scriptpubkey.push_back(Pair("type", GetTxnOutputType(TX_NONSTANDARD)));
-        }
-
-        vout.push_back(Pair("scriptPubKey",scriptpubkey));
-
-        vouts.push_back(vout);   
-        n++;             
-    }
-    txdata.push_back(Pair("vout", vouts));
-}
-*/
 Object blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool fTxInfo, bool fTxDetails)
 {
     Object result;
@@ -687,6 +612,7 @@ Value getinfo(const Array& params, bool fHelp)
     obj.push_back(Pair("newmint",       ValueFromAmount(pwalletMain->GetNewMint())));
     obj.push_back(Pair("stake",         ValueFromAmount(pwalletMain->GetStake())));
     obj.push_back(Pair("blocks",        (int)nBestHeight));
+    obj.push_back(Pair("transactions",  (int)pwalletMain->mapWallet.size()));
     obj.push_back(Pair("moneysupply",   ValueFromAmount(pindexBest->nMoneySupply)));
     obj.push_back(Pair("connections",   (int)vNodes.size()));
     obj.push_back(Pair("proxy",         (fUseProxy ? addrProxy.ToStringIPPort() : string())));
