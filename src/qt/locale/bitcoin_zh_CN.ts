@@ -525,7 +525,7 @@ Are you sure you wish to encrypt your wallet?</source>
     <message>
         <location filename="../bitcoingui.cpp" line="519"/>
         <source>Downloaded %1 of %2 blocks of transaction history (%3% done).</source>
-        <translation>%1 / %2 个交易历史的区块已下载</translation>
+        <translation>%1 / %2 个交易历史的区块已下载 (%3%)</translation>
     </message>
     <message>
         <location filename="../bitcoingui.cpp" line="531"/>
