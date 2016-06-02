@@ -1110,9 +1110,6 @@ int64 GetAccountBalance(CWalletDB& walletdb, const string& strAccount, int nMinD
         nBalance += nGenerated - nSent - nFee;
     }
 
-    // Tally internal accounting entries
-    nBalance += walletdb.GetAccountCreditDebit(strAccount);
-
     return nBalance;
 }
 
@@ -1174,55 +1171,6 @@ Value getbalance(const Array& params, bool fHelp)
 
     return ValueFromAmount(nBalance);
 }
-
-
-Value movecmd(const Array& params, bool fHelp)
-{
-    if (fHelp || params.size() < 3 || params.size() > 5)
-        throw runtime_error(
-            "move <fromaccount> <toaccount> <amount> [minconf=1] [comment]\n"
-            "Move from one account in your wallet to another.");
-
-    string strFrom = AccountFromValue(params[0]);
-    string strTo = AccountFromValue(params[1]);
-    int64 nAmount = AmountFromValue(params[2]);
-    if (params.size() > 3)
-        // unused parameter, used to be nMinDepth, keep type-checking it though
-        (void)params[3].get_int();
-    string strComment;
-    if (params.size() > 4)
-        strComment = params[4].get_str();
-
-    CWalletDB walletdb(pwalletMain->strWalletFile);
-    if (!walletdb.TxnBegin())
-        throw JSONRPCError(-20, "database error");
-
-    int64 nNow = GetAdjustedTime();
-
-    // Debit
-    CAccountingEntry debit;
-    debit.strAccount = strFrom;
-    debit.nCreditDebit = -nAmount;
-    debit.nTime = nNow;
-    debit.strOtherAccount = strTo;
-    debit.strComment = strComment;
-    walletdb.WriteAccountingEntry(debit);
-
-    // Credit
-    CAccountingEntry credit;
-    credit.strAccount = strTo;
-    credit.nCreditDebit = nAmount;
-    credit.nTime = nNow;
-    credit.strOtherAccount = strFrom;
-    credit.strComment = strComment;
-    walletdb.WriteAccountingEntry(credit);
-
-    if (!walletdb.TxnCommit())
-        throw JSONRPCError(-20, "database error");
-
-    return true;
-}
-
 
 Value sendfrom(const Array& params, bool fHelp)
 {
@@ -1622,23 +1570,6 @@ void ListTransactions(const CWalletTx& wtx, const string& strAccount, int nMinDe
     }
 }
 
-void AcentryToJSON(const CAccountingEntry& acentry, const string& strAccount, Array& ret)
-{
-    bool fAllAccounts = (strAccount == string("*"));
-
-    if (fAllAccounts || acentry.strAccount == strAccount)
-    {
-        Object entry;
-        entry.push_back(Pair("account", acentry.strAccount));
-        entry.push_back(Pair("category", "move"));
-        entry.push_back(Pair("time", (boost::int64_t)acentry.nTime));
-        entry.push_back(Pair("amount", ValueFromAmount(acentry.nCreditDebit)));
-        entry.push_back(Pair("otheraccount", acentry.strOtherAccount));
-        entry.push_back(Pair("comment", acentry.strComment));
-        ret.push_back(entry);
-    }
-}
-
 Value listtransactions(const Array& params, bool fHelp)
 {
     if (fHelp || params.size() > 3)
@@ -1664,35 +1595,22 @@ Value listtransactions(const Array& params, bool fHelp)
     Array ret;
     CWalletDB walletdb(pwalletMain->strWalletFile);
 
-    // First: get all CWalletTx and CAccountingEntry into a sorted-by-time multimap.
-    typedef pair<CWalletTx*, CAccountingEntry*> TxPair;
-    typedef multimap<int64, TxPair > TxItems;
+    // First: get all CWalletTx into a sorted-by-time multimap.
+    typedef multimap<int64, CWalletTx* > TxItems;
     TxItems txByTime;
 
-    // Note: maintaining indices in the database of (account,time) --> txid and (account, time) --> acentry
     // would make this much faster for applications that do this a lot.
     for (map<uint256, CWalletTx>::iterator it = pwalletMain->mapWallet.begin(); it != pwalletMain->mapWallet.end(); ++it)
     {
         CWalletTx* wtx = &((*it).second);
-        txByTime.insert(make_pair(wtx->GetTxTime(), TxPair(wtx, (CAccountingEntry*)0)));
-    }
-    list<CAccountingEntry> acentries;
-    walletdb.ListAccountCreditDebit(strAccount, acentries);
-    BOOST_FOREACH(CAccountingEntry& entry, acentries)
-    {
-        txByTime.insert(make_pair(entry.nTime, TxPair((CWalletTx*)0, &entry)));
+        txByTime.insert(make_pair(wtx->GetTxTime(), wtx));
     }
 
     // iterate backwards until we have nCount items to return:
     for (TxItems::reverse_iterator it = txByTime.rbegin(); it != txByTime.rend(); ++it)
     {
-        CWalletTx *const pwtx = (*it).second.first;
-        if (pwtx != 0)
-            ListTransactions(*pwtx, strAccount, 0, true, ret);
-        CAccountingEntry *const pacentry = (*it).second.second;
-        if (pacentry != 0)
-            AcentryToJSON(*pacentry, strAccount, ret);
-
+        CWalletTx *const pwtx = (*it).second;
+        ListTransactions(*pwtx, strAccount, 0, true, ret);
         if (ret.size() >= (nCount+nFrom)) break;
     }
     // ret is newest to oldest
@@ -1754,11 +1672,6 @@ Value listaccounts(const Array& params, bool fHelp)
                     mapAccountBalances[""] += r.second;
         }
     }
-
-    list<CAccountingEntry> acentries;
-    CWalletDB(pwalletMain->strWalletFile).ListAccountCreditDebit("*", acentries);
-    BOOST_FOREACH(const CAccountingEntry& entry, acentries)
-        mapAccountBalances[entry.strAccount] += entry.nCreditDebit;
 
     Object ret;
     BOOST_FOREACH(const PAIRTYPE(string, int64)& accountBalance, mapAccountBalances) {
@@ -3563,7 +3476,6 @@ static const CRPCCommand vRPCCommands[] =
     { "encryptwallet",          &encryptwallet,          false },
     { "validateaddress",        &validateaddress,        true },
     { "getbalance",             &getbalance,             false },
-    { "move",                   &movecmd,                false },
     { "sendfrom",               &sendfrom,               false },
     { "sendmany",               &sendmany,               false },
     { "addmultisigaddress",     &addmultisigaddress,     false },

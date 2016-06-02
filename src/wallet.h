@@ -795,46 +795,6 @@ public:
     )
 };
 
-
-
-/** Internal transfers.
- * Database key is acentry<account><counter>.
- */
-class CAccountingEntry
-{
-public:
-    std::string strAccount;
-    int64 nCreditDebit;
-    int64 nTime;
-    std::string strOtherAccount;
-    std::string strComment;
-
-    CAccountingEntry()
-    {
-        SetNull();
-    }
-
-    void SetNull()
-    {
-        nCreditDebit = 0;
-        nTime = 0;
-        strAccount.clear();
-        strOtherAccount.clear();
-        strComment.clear();
-    }
-
-    IMPLEMENT_SERIALIZE
-    (
-        if (!(nType & SER_GETHASH))
-            READWRITE(nVersion);
-        // Note: strAccount is serialized as part of the key, not here.
-        READWRITE(nCreditDebit);
-        READWRITE(nTime);
-        READWRITE(strOtherAccount);
-        READWRITE(strComment);
-    )
-};
-
 bool GetWalletFile(CWallet* pwallet, std::string &strWalletFileOut);
 
 #endif

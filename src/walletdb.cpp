@@ -12,8 +12,6 @@ using namespace std;
 using namespace boost;
 
 
-static uint64 nAccountingEntryNumber = 0;
-
 extern CCriticalSection cs_db;
 extern map<string, int> mapFileUseCount;
 extern void CloseDb(const string& strFile);
@@ -51,66 +49,6 @@ bool CWalletDB::EraseAccount(const string& strAccount)
 {
     return Erase(make_pair(string("acc"), strAccount));
 }
-
-bool CWalletDB::WriteAccountingEntry(const CAccountingEntry& acentry)
-{
-    return Write(boost::make_tuple(string("acentry"), acentry.strAccount, ++nAccountingEntryNumber), acentry);
-}
-
-int64 CWalletDB::GetAccountCreditDebit(const string& strAccount)
-{
-    list<CAccountingEntry> entries;
-    ListAccountCreditDebit(strAccount, entries);
-
-    int64 nCreditDebit = 0;
-    BOOST_FOREACH (const CAccountingEntry& entry, entries)
-        nCreditDebit += entry.nCreditDebit;
-
-    return nCreditDebit;
-}
-
-void CWalletDB::ListAccountCreditDebit(const string& strAccount, list<CAccountingEntry>& entries)
-{
-    bool fAllAccounts = (strAccount == "*");
-
-    Dbc* pcursor = GetCursor();
-    if (!pcursor)
-        throw runtime_error("CWalletDB::ListAccountCreditDebit() : cannot create DB cursor");
-    unsigned int fFlags = DB_SET_RANGE;
-    loop
-    {
-        // Read next record
-        CDataStream ssKey(SER_DISK, CLIENT_VERSION);
-        if (fFlags == DB_SET_RANGE)
-            ssKey << boost::make_tuple(string("acentry"), (fAllAccounts? string("") : strAccount), uint64(0));
-        CDataStream ssValue(SER_DISK, CLIENT_VERSION);
-        int ret = ReadAtCursor(pcursor, ssKey, ssValue, fFlags);
-        fFlags = DB_NEXT;
-        if (ret == DB_NOTFOUND)
-            break;
-        else if (ret != 0)
-        {
-            pcursor->close();
-            throw runtime_error("CWalletDB::ListAccountCreditDebit() : error scanning DB");
-        }
-
-        // Unserialize
-        string strType;
-        ssKey >> strType;
-        if (strType != "acentry")
-            break;
-        CAccountingEntry acentry;
-        ssKey >> acentry.strAccount;
-        if (!fAllAccounts && acentry.strAccount != strAccount)
-            break;
-
-        ssValue >> acentry;
-        entries.push_back(acentry);
-    }
-
-    pcursor->close();
-}
-
 
 int CWalletDB::LoadWallet(CWallet* pwallet)
 {
@@ -200,15 +138,6 @@ int CWalletDB::LoadWallet(CWallet* pwallet)
                 //    DateTimeStrFormat(wtx.GetBlockTime()).c_str(),
                 //    wtx.hashBlock.ToString().substr(0,20).c_str(),
                 //    wtx.mapValue["message"].c_str());
-            }
-            else if (strType == "acentry")
-            {
-                string strAccount;
-                ssKey >> strAccount;
-                uint64 nNumber;
-                ssKey >> nNumber;
-                if (nNumber > nAccountingEntryNumber)
-                    nAccountingEntryNumber = nNumber;
             }
             else if (strType == "key" || strType == "wkey")
             {

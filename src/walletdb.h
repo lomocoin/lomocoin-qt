@@ -10,7 +10,6 @@
 
 class CKeyPool;
 class CAccount;
-class CAccountingEntry;
 
 /** Error statuses for the wallet database */
 enum DBErrors
@@ -189,9 +188,6 @@ public:
     bool ReadAccount(const std::string& strAccount, CAccount& account);
     bool WriteAccount(const std::string& strAccount, const CAccount& account);
     bool EraseAccount(const std::string& strAccount);
-    bool WriteAccountingEntry(const CAccountingEntry& acentry);
-    int64 GetAccountCreditDebit(const std::string& strAccount);
-    void ListAccountCreditDebit(const std::string& strAccount, std::list<CAccountingEntry>& acentries);
 
     int LoadWallet(CWallet* pwallet);
 };
