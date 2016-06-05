@@ -361,6 +361,7 @@ public:
 
     bool WriteTxToDB(CWalletTx& wtx);
     bool EraseTxFromDB(uint256& hashTx);
+    bool PurgeAllTxFromDB();
 };
 
 /** A key allocated from the key pool. */

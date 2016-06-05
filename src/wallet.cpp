@@ -2474,3 +2474,17 @@ bool CWallet::EraseTxFromDB(uint256& hashTx)
     return dbWalletTx.EraseTx(hashTx);
 }
 
+bool CWallet::PurgeAllTxFromDB()
+{
+    if (!fFileBacked)
+        return true;
+    
+    LOCK(cs_wallet);
+    BOOST_FOREACH(PAIRTYPE(const uint256, CWalletTx)& item, mapWallet)
+    {
+        if (!dbWalletTx.EraseTx(item.first))
+            return false;
+    }
+    return true;
+}
+
