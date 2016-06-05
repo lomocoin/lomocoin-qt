@@ -11,6 +11,8 @@
 #include "util.h"
 #include "ui_interface.h"
 #include "checkpoints.h"
+#include "leveldbeng.h"
+
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/convenience.hpp>
@@ -389,7 +391,12 @@ bool AppInit2(int argc, char* argv[])
     printf("Loading wallet...\n");
     nStart = GetTimeMillis();
     bool fFirstRun;
-    pwalletMain = new CWallet("wallet.dat");
+    
+    CLevelDBArguments args;
+    args.name = "wtxdb";
+    CLevelDBEngine *engine = new CLevelDBEngine(args);
+    pwalletMain = new CWallet("wallet.dat",engine);
+
     int nLoadWalletRet = pwalletMain->LoadWallet(fFirstRun);
     if (nLoadWalletRet != DB_LOAD_OK)
     {
@@ -443,7 +450,7 @@ bool AppInit2(int argc, char* argv[])
     RegisterWallet(pwalletMain);
 
     CBlockIndex *pindexRescan = pindexBest;
-    if (GetBoolArg("-rescan"))
+    if (GetBoolArg("-rescan") || pwalletMain->mapWallet.size() == 0)
     {
         pindexRescan = pindexGenesisBlock;
         pwalletMain->mapWallet.clear();

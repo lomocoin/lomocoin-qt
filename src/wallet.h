@@ -10,6 +10,7 @@
 #include "key.h"
 #include "keystore.h"
 #include "script.h"
+#include "wtxdb.h"
 
 extern bool fWalletUnlockMintOnly;
 
@@ -70,7 +71,7 @@ private:
     bool SelectFragmentedCoins(CScript& scriptPubKey,int64 nValueThresh,unsigned int nSpendTime, std::set<std::pair<const CWalletTx*,unsigned int> >& setCoinsRet) const;
  
     CWalletDB *pwalletdbEncryption;
-
+    CWalletTxDB dbWalletTx;
     // the current wallet version: clients below this version are not able to load the wallet
     int nWalletVersion;
 
@@ -107,7 +108,17 @@ public:
         nMasterKeyMaxID = 0;
         pwalletdbEncryption = NULL;
     }
-
+    CWallet(std::string strWalletFileIn,CKVDBEngine *pWTXDBEngine)
+    : dbWalletTx(pWTXDBEngine)
+    {
+        nWalletVersion = FEATURE_BASE;
+        nWalletMaxVersion = FEATURE_BASE;
+        strWalletFile = strWalletFileIn;
+        fFileBacked = true;
+        nMasterKeyMaxID = 0;
+        pwalletdbEncryption = NULL;
+    }
+    
     std::map<uint256, CWalletTx> mapWallet;
     std::vector<uint256> vWalletUpdated;
     std::map<uint256, int> mapRequestCount;
@@ -347,6 +358,9 @@ public:
     
     void UpdateUnspentOutput(CWalletTx& wtx,int nOut,bool fRemoveAny = false);
     void UpdateUnspentOutputs(CWalletTx& wtx,bool fRemoveAny = false);
+
+    bool WriteTxToDB(CWalletTx& wtx);
+    bool EraseTxFromDB(uint256& hashTx);
 };
 
 /** A key allocated from the key pool. */
@@ -692,8 +706,6 @@ public:
         }
         return true;
     }
-
-    bool WriteToDisk();
 
     int64 GetTxTime() const;
     int GetRequestCount() const;

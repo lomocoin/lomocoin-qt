@@ -11,6 +11,7 @@
 #include "kernel.h"
 #include <boost/algorithm/string/replace.hpp>
 #include "base58.h"
+#include "wtxdb.h"
 
 using namespace std;
 
@@ -395,7 +396,7 @@ void CWallet::WalletUpdateSpent(const CTransaction &tx)
                 {
                     printf("WalletUpdateSpent found spent coin %sppc %s\n", FormatMoney(wtx.GetCredit()).c_str(), wtx.GetHash().ToString().c_str());
                     wtx.MarkSpent(txin.prevout.n);
-                    wtx.WriteToDisk();
+                    WriteTxToDB(wtx);
                     vWalletUpdated.push_back(txin.prevout.hash);
                 }
 
@@ -455,7 +456,7 @@ bool CWallet::AddToWallet(const CWalletTx& wtxIn)
 
         // Write to disk
         if (fInsertedNew || fUpdated)
-            if (!wtx.WriteToDisk())
+            if (!WriteTxToDB(wtx))
                 return false;
         
         if (fInsertedNew || fUpdated)
@@ -533,7 +534,7 @@ bool CWallet::EraseFromWallet(uint256 hash)
         if (mi != mapWallet.end())
             UpdateUnspentOutputs((*mi).second,true);
         if (mapWallet.erase(hash))
-            CWalletDB(strWalletFile).EraseTx(hash);
+            EraseTxFromDB(hash);
     }
     return true;
 }
@@ -819,11 +820,6 @@ void CWalletTx::AddSupportingTransactions(CTxDB& txdb)
     reverse(vtxPrev.begin(), vtxPrev.end());
 }
 
-bool CWalletTx::WriteToDisk()
-{
-    return CWalletDB(pwallet->strWalletFile).WriteTx(GetHash(), *this);
-}
-
 // Scan the block chain (starting in pindexStart) for transactions
 // from or to us. If fUpdate is true, found transactions that already
 // exist in the wallet will be updated.
@@ -898,7 +894,7 @@ void CWallet::ReacceptWalletTransactions()
                 {
                     printf("ReacceptWalletTransactions found spent coin %sppc %s\n", FormatMoney(wtx.GetCredit()).c_str(), wtx.GetHash().ToString().c_str());
                     wtx.MarkDirty();
-                    wtx.WriteToDisk();
+                    WriteTxToDB(wtx);
                 }
             }
             else
@@ -1934,7 +1930,7 @@ bool CWallet::CommitTransaction(CWalletTx& wtxNew, CReserveKey& reservekey)
                 CWalletTx &coin = mapWallet[txin.prevout.hash];
                 coin.BindWallet(this);
                 coin.MarkSpent(txin.prevout.n);
-                coin.WriteToDisk();
+                WriteTxToDB(coin);
                 vWalletUpdated.push_back(coin.GetHash());
             }
 
@@ -2041,6 +2037,10 @@ int CWallet::LoadWallet(bool& fFirstRunRet)
         return nLoadWalletRet;
     fFirstRunRet = !vchDefaultKey.IsValid();
 
+    if (!fFirstRunRet && dbWalletTx.IsValid())
+    {
+        dbWalletTx.LoadAll(this);
+    }
     CreateThread(ThreadFlushWalletDB, &strWalletFile);
     return DB_LOAD_OK;
 }
@@ -2303,7 +2303,7 @@ void CWallet::FixSpentCoins(int& nMismatchFound, int64& nBalanceInQuestion, bool
                     if (mempool.exists(hash))
                         mempool.remove(*pcoin);
                     if (mapWallet.erase(hash))
-                        CWalletDB(strWalletFile).EraseTx(hash);
+                        EraseTxFromDB(hash);
                 }
             }
         }
@@ -2327,7 +2327,7 @@ void CWallet::FixSpentCoins(int& nMismatchFound, int64& nBalanceInQuestion, bool
                 if (!fCheckOnly)
                 {
                     pcoin->MarkUnspent(n);
-                    pcoin->WriteToDisk();
+                    WriteTxToDB(*pcoin);
                     UpdateUnspentOutput(*pcoin,n);
                 }
             }
@@ -2340,7 +2340,7 @@ void CWallet::FixSpentCoins(int& nMismatchFound, int64& nBalanceInQuestion, bool
                 if (!fCheckOnly)
                 {
                     pcoin->MarkSpent(n);
-                    pcoin->WriteToDisk();
+                    WriteTxToDB(*pcoin);
                     UpdateUnspentOutput(*pcoin,n);
                 }
             }
@@ -2367,7 +2367,7 @@ void CWallet::DisableTransaction(const CTransaction &tx)
                      || IsMineForMultiSig(prev.vout[txin.prevout.n])))
             {
                 prev.MarkUnspent(txin.prevout.n);
-                prev.WriteToDisk();
+                WriteTxToDB(prev);
             }
             UpdateUnspentOutput(prev,txin.prevout.n);
         }
@@ -2457,3 +2457,20 @@ void CWallet::UpdateUnspentOutputs(CWalletTx& wtx,bool fRemoveAny)
     for (int i = 0;i < wtx.vout.size();i++)
         UpdateUnspentOutput(wtx,i,fRemoveAny);
 }
+
+bool CWallet::WriteTxToDB(CWalletTx& wtx)
+{
+    if (!fFileBacked)
+        return true;
+
+    return dbWalletTx.WriteTx(wtx.GetHash(),wtx);
+}
+
+bool CWallet::EraseTxFromDB(uint256& hashTx)
+{
+    if (!fFileBacked)
+        return true;
+
+    return dbWalletTx.EraseTx(hashTx);
+}
+

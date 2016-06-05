@@ -108,9 +108,15 @@ OBJS= \
     obj/util.o \
     obj/wallet.o \
     obj/walletdb.o \
+    obj/leveldbeng.o \
+    obj/wtxdb.o \
     obj/noui.o \
     obj/kernel.o
 
+#LevelDB
+LEVELDB_CPPFLAGS += -Ileveldb/include
+LIBLEVELDB += leveldb/libleveldb.a
+LOMOCOIN_LDADD += $(LIBLEVELDB) 
 
 all: lomocoind
 
@@ -124,14 +130,20 @@ version.cpp: obj/build.h
 DEFS += -DHAVE_BUILD_INFO
 
 obj/%.o: %.cpp
-	$(CXX) -c $(xCXXFLAGS) -MMD -o $@ $<
+	$(CXX) -c $(xCXXFLAGS) $(LEVELDB_CPPFLAGS) -MMD -o $@ $<
 	@cp $(@:%.o=%.d) $(@:%.o=%.P); \
 	  sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
 	      -e '/^$$/ d' -e 's/$$/ :/' < $(@:%.o=%.d) >> $(@:%.o=%.P); \
 	  rm -f $(@:%.o=%.d)
 
-lomocoind: $(OBJS:obj/%=obj/%)
-	$(CXX) $(xCXXFLAGS) -rdynamic -o $@ $^ $(LDFLAGS) $(LIBS)
+
+$(LIBLEVELDB):
+	@echo "Building LevelDB ..." && $(MAKE) -C $(@D) $(@F) CXX="$(CXX)" \
+	 CC="$(CC)" PLATFORM=$(TARGET_OS) AR="$(AR)" $(LEVELDB_TARGET_FLAGS) \
+	 OPT="$(xCXXFLAGS) -D__STDC_LIMIT_MACROS"
+
+lomocoind: $(OBJS:obj/%=obj/%) $(LOMOCOIN_LDADD)
+	$(CXX) $(xCXXFLAGS) -rdynamic -o $@ $^ $(LDFLAGS) $(LIBS) $(LOMOCOIN_LDADD)
 
 TESTOBJS := $(patsubst test/%.cpp,obj-test/%.o,$(wildcard test/*.cpp))
 
@@ -146,6 +158,7 @@ test_lomocoin: $(TESTOBJS) $(filter-out obj/init.o,$(OBJS:obj/%=obj/%))
 	$(CXX) $(xCXXFLAGS) -o $@ $(LIBPATHS) $^ -Wl,-B$(LMODE) -lboost_unit_test_framework $(LDFLAGS) $(LIBS)
 
 clean:
+	-$(MAKE) -C leveldb clean
 	-rm -f lomocoind test_lomocoin
 	-rm -f obj/*.o
 	-rm -f obj-test/*.o

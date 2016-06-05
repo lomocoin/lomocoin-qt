@@ -62,6 +62,7 @@
 USE_UPNP:=0
 
 INCLUDEPATHS= \
+ -I"leveldb\include" \
  -I"C:\boost-1.47.0-mgw" \
  -I"C:\db-4.8.30.NC-mgw\build_unix" \
  -I"C:\openssl-1.0.1g-mgw\include"
@@ -100,6 +101,7 @@ LIBS += -l kernel32 -l user32 -l gdi32 -l comdlg32 -l winspool -l winmm -l shell
 HEADERS = $(wildcard *.h)
 
 OBJS= \
+    leveldb/libleveldb.a \
     obj/version.o \
     obj/checkpoints.o \
     obj/netbase.o \
@@ -119,14 +121,20 @@ OBJS= \
     obj/util.o \
     obj/wallet.o \
     obj/walletdb.o \
+    obj/leveldbeng.o \
+    obj/wtxdb.o \
     obj/noui.o \
-    obj/kernel.o
+    obj/kernel.o 
+
 
 
 all: lomocoind.exe
 
 obj/%.o: %.cpp $(HEADERS)
 	g++ -c $(CFLAGS) -o $@ $<
+
+leveldb/libleveldb.a:
+	cd leveldb && $(MAKE) CC=$(CC) CXX=$(CXX) OPT="$(CFLAGS)" TARGET_OS=NATIVE_WINDOWS libleveldb.a && cd ..
 
 lomocoind.exe: $(OBJS:obj/%=obj/%)
 	g++ $(CFLAGS) -o $@ $(LIBPATHS) $^ $(LIBS)
@@ -144,3 +152,5 @@ clean:
 	-del /Q obj\*
 	-del /Q obj-test\*
 	-del /Q build.h
+	cd leveldb && $(MAKE) TARGET_OS=NATIVE_WINDOWS clean && cd ..
+

@@ -96,6 +96,8 @@ OBJS= \
     obj/util.o \
     obj/wallet.o \
     obj/walletdb.o \
+    obj/leveldbeng.o \
+    obj/wtxdb.o \
     obj/noui.o \
     obj/kernel.o
 
@@ -107,6 +109,11 @@ else
 	LIBS += -lminiupnpc
 endif
 endif
+
+#LevelDB
+LEVELDB_CPPFLAGS += -Ileveldb/include
+LIBLEVELDB += leveldb/libleveldb.a
+LOMOCOIN_LDADD += $(LIBLEVELDB)
 
 all: lomocoind
 
@@ -126,8 +133,13 @@ obj/%.o: %.cpp
 	      -e '/^$$/ d' -e 's/$$/ :/' < $(@:%.o=%.d) >> $(@:%.o=%.P); \
 	  rm -f $(@:%.o=%.d)
 
-lomocoind: $(OBJS:obj/%=obj/%)
-	$(CXX) $(CFLAGS) -o $@ $(LIBPATHS) $^ $(LIBS)
+$(LIBLEVELDB):
+	@echo "Building LevelDB ..." && $(MAKE) -C $(@D) $(@F) CXX="$(CXX)" \
+	 CC="$(CC)" AR="$(AR)" $(LEVELDB_TARGET_FLAGS) \
+	 OPT="$(xCXXFLAGS) -D__STDC_LIMIT_MACROS"
+
+lomocoind: $(OBJS:obj/%=obj/%) $(LOMOCOIN_LDADD)
+	$(CXX) $(CFLAGS) -o $@ $(LIBPATHS) $^ $(LIBS) $(LOMOCOIN_LDADD)
 
 TESTOBJS := $(patsubst test/%.cpp,obj-test/%.o,$(wildcard test/*.cpp))
 
@@ -142,6 +154,7 @@ test_lomocoin: $(TESTOBJS) $(filter-out obj/init.o,$(OBJS:obj/%=obj/%))
 	$(CXX) $(CFLAGS) -o $@ $(LIBPATHS) $^ $(LIBS) $(TESTLIBS)
 
 clean:
+	-$(MAKE) -C leveldb clean
 	-rm -f lomocoind test_lomocoin
 	-rm -f obj/*.o
 	-rm -f obj-test/*.o

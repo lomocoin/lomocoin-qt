@@ -12,6 +12,7 @@ INCLUDEPATHS= \
  -I"$(DEPSDIR)/openssl-1.0.1g/include" \
  -I"$(DEPSDIR)" \
  -I"$(CURDIR)"/obj \
+ -I"$(CURDIR)"/leveldb/include 
 
 LIBPATHS= \
  -L"$(DEPSDIR)/boost_1_47_0/stage/lib" \
@@ -19,6 +20,7 @@ LIBPATHS= \
  -L"$(DEPSDIR)/openssl-1.0.1g"
 
 LIBS= \
+  $(CURDIR)/leveldb/libleveldb.a \
  -l boost_system-mt-s \
  -l boost_filesystem-mt-s \
  -l boost_program_options-mt-s \
@@ -46,6 +48,7 @@ LIBS += -l mingwthrd -l kernel32 -l user32 -l gdi32 -l comdlg32 -l winspool -l w
 HEADERS = $(wildcard *.h)
 
 OBJS= \
+    leveldb/libleveldb.a \
     obj/version.o \
     obj/checkpoints.o \
     obj/netbase.o \
@@ -65,10 +68,16 @@ OBJS= \
     obj/util.o \
     obj/wallet.o \
     obj/walletdb.o \
+    obj/leveldbeng.o \
+    obj/wtxdb.o \
     obj/noui.o \
     obj/kernel.o
 
 all: lomocoind.exe
+
+leveldb/libleveldb.a:
+	@echo "Building LevelDB ..." && cd leveldb && TARGET_OS=OS_WINDOWS_CROSSCOMPILE $(MAKE) CC=$(CC) CXX=$(CXX) OPT="$(xCXXFLAGS)" libleveldb.a && i586-mingw32msvc-ranlib libleveldb.a cd ..
+
 
 obj/build.h: FORCE
 	/bin/sh ../share/genbuild.sh obj/build.h
@@ -96,5 +105,6 @@ clean:
 	-rm -f obj-test/*.o
 	-rm -f test_bitcoin.exe
 	-rm -f src/build.h
+	cd leveldb && TARGET_OS=OS_WINDOWS_CROSSCOMPILE $(MAKE) clean && cd ..
 
 FORCE:
