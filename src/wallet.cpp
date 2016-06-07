@@ -783,6 +783,9 @@ void CWalletTx::AddSupportingTransactions(CTxDB& txdb)
                     continue;
                 setAlreadyDone.insert(hash);
 
+                if (txdb.ContainsTx(hash))
+                    continue;
+
                 CMerkleTx tx;
                 map<uint256, CWalletTx>::const_iterator mi = pwallet->mapWallet.find(hash);
                 if (mi != pwallet->mapWallet.end())
@@ -1911,11 +1914,6 @@ bool CWallet::CommitTransaction(CWalletTx& wtxNew, CReserveKey& reservekey)
         LOCK2(cs_main, cs_wallet);
         printf("CommitTransaction:\n%s", wtxNew.ToString().c_str());
         {
-            // This is only to keep the database open to defeat the auto-flush for the
-            // duration of this scope.  This is the only place where this optimization
-            // maybe makes sense; please don't do it anywhere else.
-            CWalletDB* pwalletdb = fFileBacked ? new CWalletDB(strWalletFile,"r") : NULL;
-
             // Take key pair from key pool so it won't be used again
             reservekey.KeepKey();
 
@@ -1933,9 +1931,6 @@ bool CWallet::CommitTransaction(CWalletTx& wtxNew, CReserveKey& reservekey)
                 WriteTxToDB(coin);
                 vWalletUpdated.push_back(coin.GetHash());
             }
-
-            if (fFileBacked)
-                delete pwalletdb;
         }
 
         // Track how many getdata requests our transaction gets
