@@ -317,10 +317,12 @@ public:
 
     void UpdatedTransaction(const uint256 &hashTx)
     {
+#ifdef QT_GUI
         {
             LOCK(cs_wallet);
             vWalletUpdated.push_back(hashTx);
         }
+#endif
     }
 
     void PrintWallet(const CBlock& block);
@@ -362,6 +364,7 @@ public:
     bool WriteTxToDB(CWalletTx& wtx);
     bool EraseTxFromDB(uint256& hashTx);
     bool PurgeAllTxFromDB();
+    bool ExistsAndConfirmed(uint256 hashTx) const;
 };
 
 /** A key allocated from the key pool. */
@@ -675,36 +678,15 @@ public:
         if (!IsFromMe()) // using wtx's cached debit
             return false;
 
-        // If no confirmations but it's from us, we can still
-        // consider it confirmed if all dependencies are confirmed
-        std::map<uint256, const CMerkleTx*> mapPrev;
-        std::vector<const CMerkleTx*> vWorkQueue;
-        vWorkQueue.reserve(vtxPrev.size()+1);
-        vWorkQueue.push_back(this);
-        for (unsigned int i = 0; i < vWorkQueue.size(); i++)
+        BOOST_FOREACH(const CMerkleTx& tx, vtxPrev)
         {
-            const CMerkleTx* ptx = vWorkQueue[i];
-
-            if (!ptx->IsFinal())
-                return false;
-            if (ptx->GetDepthInMainChain() >= 1)
+            if (tx.GetDepthInMainChain() >= 1)
                 continue;
-            if (!pwallet->IsFromMe(*ptx))
+
+            if (!pwallet->CWallet::ExistsAndConfirmed(tx.GetHash()))
                 return false;
-
-            if (mapPrev.empty())
-            {
-                BOOST_FOREACH(const CMerkleTx& tx, vtxPrev)
-                    mapPrev[tx.GetHash()] = &tx;
-            }
-
-            BOOST_FOREACH(const CTxIn& txin, ptx->vin)
-            {
-                if (!mapPrev.count(txin.prevout.hash))
-                    return false;
-                vWorkQueue.push_back(mapPrev[txin.prevout.hash]);
-            }
         }
+
         return true;
     }
 

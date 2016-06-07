@@ -397,7 +397,9 @@ void CWallet::WalletUpdateSpent(const CTransaction &tx)
                     printf("WalletUpdateSpent found spent coin %sppc %s\n", FormatMoney(wtx.GetCredit()).c_str(), wtx.GetHash().ToString().c_str());
                     wtx.MarkSpent(txin.prevout.n);
                     WriteTxToDB(wtx);
+#ifdef QT_GUI
                     vWalletUpdated.push_back(txin.prevout.hash);
+#endif
                 }
 
                 UpdateUnspentOutput(wtx,txin.prevout.n);
@@ -478,10 +480,10 @@ bool CWallet::AddToWallet(const CWalletTx& wtxIn)
                 }
             }
         }
-#endif
+#else
         // Notify UI
         vWalletUpdated.push_back(hash);
-
+#endif
         // since AddToWallet is called directly for self-originating transactions, check for consumption of own coins
         WalletUpdateSpent(wtx);
 
@@ -783,9 +785,6 @@ void CWalletTx::AddSupportingTransactions(CTxDB& txdb)
                     continue;
                 setAlreadyDone.insert(hash);
 
-                if (txdb.ContainsTx(hash))
-                    continue;
-
                 CMerkleTx tx;
                 map<uint256, CWalletTx>::const_iterator mi = pwallet->mapWallet.find(hash);
                 if (mi != pwallet->mapWallet.end())
@@ -808,14 +807,7 @@ void CWalletTx::AddSupportingTransactions(CTxDB& txdb)
                     continue;
                 }
 
-                int nDepth = tx.SetMerkleBranch();
                 vtxPrev.push_back(tx);
-
-                if (nDepth < COPY_DEPTH)
-                {
-                    BOOST_FOREACH(const CTxIn& txin, tx.vin)
-                        vWorkQueue.push_back(txin.prevout.hash);
-                }
             }
         }
     }
@@ -1927,9 +1919,14 @@ bool CWallet::CommitTransaction(CWalletTx& wtxNew, CReserveKey& reservekey)
             {
                 CWalletTx &coin = mapWallet[txin.prevout.hash];
                 coin.BindWallet(this);
-                coin.MarkSpent(txin.prevout.n);
-                WriteTxToDB(coin);
-                vWalletUpdated.push_back(coin.GetHash());
+                if (!coin.IsSpent(txin.prevout.n))
+                {
+                    coin.MarkSpent(txin.prevout.n);
+                    WriteTxToDB(coin);
+#ifdef QT_GUI
+                    vWalletUpdated.push_back(coin.GetHash());
+#endif
+                }
             }
         }
 
@@ -2481,5 +2478,16 @@ bool CWallet::PurgeAllTxFromDB()
             return false;
     }
     return true;
+}
+
+bool CWallet::ExistsAndConfirmed(uint256 hashTx) const
+{
+    LOCK(cs_wallet);
+    map<uint256, CWalletTx>::const_iterator mi = mapWallet.find(hashTx);
+    if (mi != mapWallet.end())
+    {
+        return (*mi).second.IsConfirmed();
+    }
+    return false;
 }
 
