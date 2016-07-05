@@ -21,7 +21,11 @@ void OptionsModel::Init()
     fMinimizeToTray = settings.value("fMinimizeToTray", false).toBool();
     fMinimizeOnClose = settings.value("fMinimizeOnClose", false).toBool();
     nTransactionFee = settings.value("nTransactionFee").toLongLong();
-
+    if (nTransactionFee < MIN_TX_FEE)
+	{
+		nTransactionFee = MIN_TX_FEE;
+		settings.setValue("nTransactionFee",nTransactionFee);
+	}
     // These are shared with core bitcoin; we want
     // command-line options to override the GUI settings:
     if (settings.contains("fUseUPnP"))
