@@ -562,8 +562,9 @@ bool CTransaction::CheckInputs(CTxDB& txdb)
         uint64 nCoinAge;
         if (!GetCoinAge(txdb, nCoinAge))
             return error("CheckInputs() : %s unable to get coin age for coinstake", GetHash().ToString().substr(0,10).c_str());
-        int64 nStakeReward = GetValueOut() - GetValueIn(mapInputs);
-        if (nStakeReward > GetProofOfStakeReward(nCoinAge) - GetMinFee() + MIN_TX_FEE)
+        int64 nValueIn = GetValueIn(mapInputs);
+        int64 nStakeReward = GetValueOut() - nValueIn;
+        if (nStakeReward > GetProofOfStakeReward(nCoinAge,nValueIn) - GetMinFee() + MIN_TX_FEE)
             return error("CheckInputs() : %s stake reward exceeded", GetHash().ToString().substr(0,10).c_str());
         if (nStakeReward < 0)
             return error("CheckInputs() : %s stake reward invalid", GetHash().ToString().substr(0,10).c_str());        
@@ -998,9 +999,18 @@ int64 GetProofOfWorkReward(unsigned int nBits)
 }
 
 // lomocoin: miner's coin stake is rewarded based on coin age spent (coin-days)
-int64 GetProofOfStakeReward(int64 nCoinAge)
+int64 GetProofOfStakeReward(int64 nCoinAge,int64 nCoinInvolved)
 {
-    static int64 nRewardCoinYear = 5 * CENT;  // creation amount per coin-year
+    const int64 nRewardTable[21] = {5,10,12,12,12,15,15,15,15,15,
+                                    19,19,19,19,19,19,19,19,19,19,24};
+
+    int64 index = nCoinInvolved / (50000 * COIN);
+    if (index > 20)
+    {
+        index = 20;
+    }
+
+    int64 nRewardCoinYear = nRewardTable[index] * CENT;  // creation amount per coin-year
     int64 nSubsidy = nCoinAge * 33 / ((365 * 33 + 8) * 24 * 60) * nRewardCoinYear;
     if (fDebug && GetBoolArg("-printcreation"))
         printf("GetProofOfStakeReward(): create=%s nCoinAge=%"PRI64d"\n", FormatMoney(nSubsidy).c_str(), nCoinAge);
@@ -1402,7 +1412,7 @@ bool CTransaction::ConnectInputs(CTxDB& txdb, MapPrevTx inputs,
             if (!GetCoinAge(txdb, nCoinAge))
                 return error("ConnectInputs() : %s unable to get coin age for coinstake", GetHash().ToString().substr(0,10).c_str());
             int64 nStakeReward = GetValueOut() - nValueIn;
-            if (nStakeReward > GetProofOfStakeReward(nCoinAge) - GetMinFee() + MIN_TX_FEE)
+            if (nStakeReward > GetProofOfStakeReward(nCoinAge,nValueIn) - GetMinFee() + MIN_TX_FEE)
                 return DoS(100, error("ConnectInputs() : %s stake reward exceeded", GetHash().ToString().substr(0,10).c_str()));
             if (nStakeReward < 0)
                 return DoS(100, error("ConnectInputs() : %s stake reward invalid", GetHash().ToString().substr(0,10).c_str()));
