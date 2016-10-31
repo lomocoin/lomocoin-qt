@@ -212,6 +212,8 @@ bool AppInit2(int argc, char* argv[])
     fPrintToDebugger = GetBoolArg("-printtodebugger");
     fLogTimestamps = GetBoolArg("-logtimestamps");
 
+    fSplitStake = GetBoolArg("-splitstake",false);
+
 #ifndef QT_GUI
     for (int i = 1; i < argc; i++)
         if (!IsSwitchChar(argv[i][0]) && !(strlen(argv[i]) >= 7 && strncasecmp(argv[i], "lomocoin:", 7) == 0))
@@ -476,7 +478,7 @@ bool AppInit2(int argc, char* argv[])
 
     fAllowDNS = GetBoolArg("-dns");
     fNoListen = !GetBoolArg("-listen", true);
-
+ 
     // Continue to put "/P2SH/" in the coinbase to monitor
     // BIP16 support.
     // This can be removed eventually...
@@ -612,6 +614,7 @@ void DisplayUsage()
 #endif
             "  -testnet         \t\t  " + _("Use the test network") + "\n" +
             "  -debug           \t\t  " + _("Output extra debugging information") + "\n" +
+            "  -splitstake      \t\t  " + _("Enable split stake") + "\n" +
             "  -logtimestamps   \t  "   + _("Prepend debug output with timestamp") + "\n" +
             "  -printtoconsole  \t  "   + _("Send trace/debug info to console instead of debug.log file") + "\n" +
 #ifdef WIN32
