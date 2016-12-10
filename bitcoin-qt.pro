@@ -215,6 +215,7 @@ HEADERS += src/qt/bitcoingui.h \
     src/kernel.h \
     src/kvdb.h \
     src/leveldbeng.h \
+    src/btxdb.h \
     src/wtxdb.h 
 		
 SOURCES += src/qt/bitcoin.cpp src/qt/bitcoingui.cpp \
@@ -273,6 +274,7 @@ SOURCES += src/qt/bitcoin.cpp src/qt/bitcoingui.cpp \
     src/qt/rpcconsole.cpp \
     src/kernel.cpp \
     src/leveldbeng.cpp \
+    src/btxdb.cpp \
     src/wtxdb.cpp 
 
 RESOURCES += \

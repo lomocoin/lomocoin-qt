@@ -7,7 +7,7 @@
 #define BITCOIN_DB_H
 
 #include "main.h"
-
+#include "btxdb.h"
 #include <map>
 #include <string>
 #include <vector>
@@ -283,39 +283,12 @@ public:
 
 
 /** Access to the transaction database (blkindex.dat) */
-class CTxDB : public CDB
+class CTxDB_BDB : public CDB
 {
 public:
-    CTxDB(const char* pszMode="r+") : CDB("blkindex.dat", pszMode) { }
-private:
-    CTxDB(const CTxDB&);
-    void operator=(const CTxDB&);
+    CTxDB_BDB(const char* pszMode="r") : CDB("blkindex.dat", pszMode) { }
 public:
-    bool ReadTxIndex(uint256 hash, CTxIndex& txindex);
-    bool UpdateTxIndex(uint256 hash, const CTxIndex& txindex);
-    bool AddTxIndex(const CTransaction& tx, const CDiskTxPos& pos, int nHeight);
-    bool EraseTxIndex(const CTransaction& tx);
-    bool ContainsTx(uint256 hash);
-    bool ReadOwnerTxes(uint160 hash160, int nHeight, std::vector<CTransaction>& vtx);
-    bool ReadDiskTx(uint256 hash, CTransaction& tx, CTxIndex& txindex);
-    bool ReadDiskTx(uint256 hash, CTransaction& tx);
-    bool ReadDiskTx(COutPoint outpoint, CTransaction& tx, CTxIndex& txindex);
-    bool ReadDiskTx(COutPoint outpoint, CTransaction& tx);
-    bool WriteBlockIndex(const CDiskBlockIndex& blockindex);
-    bool EraseBlockIndex(uint256 hash);
-    bool ReadHashBestChain(uint256& hashBestChain);
-    bool WriteHashBestChain(uint256 hashBestChain);
-    bool ReadBestInvalidTrust(CBigNum& bnBestInvalidTrust);
-    bool WriteBestInvalidTrust(CBigNum bnBestInvalidTrust);
-    bool ReadSyncCheckpoint(uint256& hashCheckpoint);
-    bool WriteSyncCheckpoint(uint256 hashCheckpoint);
-    bool ReadCheckpointPubKey(std::string& strPubKey);
-    bool WriteCheckpointPubKey(const std::string& strPubKey);
-    bool ReadV04UpgradeTime(unsigned int& nUpgradeTime);
-    bool WriteV04UpgradeTime(const unsigned int& nUpgradeTime);
-    bool ReadV05UpgradeTime(unsigned int& nUpgradeTime);
-    bool WriteV05UpgradeTime(const unsigned int& nUpgradeTime);
-    bool LoadBlockIndex();
+    bool ImportTo(CBlockTxDB& txdb);
 };
 
 

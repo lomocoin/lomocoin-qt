@@ -12,6 +12,7 @@
 #include "ui_interface.h"
 #include "checkpoints.h"
 #include "leveldbeng.h"
+#include "btxdb.h"
 
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
@@ -79,6 +80,7 @@ void Shutdown(void* parg)
         delete pwalletMain;
         CreateThread(ExitTimeout, NULL);
         Sleep(50);
+        DestroyBlockTxDB();
         printf("LoMoCoin exiting\n\n");
         fExit = true;
 #ifndef QT_GUI
@@ -254,6 +256,18 @@ bool AppInit2(int argc, char* argv[])
     printf("LoMoCoin version %s (%s)\n", FormatFullVersion().c_str(), CLIENT_DATE.c_str());
     printf("Default data directory %s\n", GetDefaultDataDir().string().c_str());
 
+    {
+        CLevelDBArguments args;
+        args.name = "blockindex";
+        args.syncwrite = false;
+
+        CLevelDBEngine *engine = new CLevelDBEngine(args);
+        if (engine == NULL || !InitBlockTxDB(engine))
+        {
+            fprintf(stderr, "Error : failed to open txdb\n");
+            return false;
+        }
+    }
     if (GetBoolArg("-loadblockindextest"))
     {
         CTxDB txdb("r");
@@ -478,7 +492,7 @@ bool AppInit2(int argc, char* argv[])
 
     fAllowDNS = GetBoolArg("-dns");
     fNoListen = !GetBoolArg("-listen", true);
- 
+
     // Continue to put "/P2SH/" in the coinbase to monitor
     // BIP16 support.
     // This can be removed eventually...

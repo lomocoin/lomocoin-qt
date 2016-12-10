@@ -122,6 +122,7 @@ OBJS= \
     obj/wallet.o \
     obj/walletdb.o \
     obj/leveldbeng.o \
+    obj/btxdb.o \
     obj/wtxdb.o \
     obj/noui.o \
     obj/kernel.o 

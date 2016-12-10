@@ -59,6 +59,22 @@ public:
         return (dbEngine != NULL);
     }
 
+    bool Import(const CDataStream& ssKey,const CDataStream& ssValue)
+    {
+        try
+        {
+            LOCK(cs);
+
+            if (dbEngine == NULL)
+                return false;
+            return dbEngine->Put(ssKey,ssValue,true);
+        }
+        catch (...)
+        {
+        }
+
+        return false;
+    }
 protected:
     template<typename K, typename T>
     bool Read(const K& key, T& value) 
@@ -75,7 +91,7 @@ protected:
             if (dbEngine == NULL)
                 return false;
 
-            if (dbEngine->Get(key,value))
+            if (dbEngine->Get(ssKey,ssValue))
             {
                 ssValue >> value;
                 return true;
