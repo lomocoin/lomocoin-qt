@@ -661,7 +661,18 @@ bool CTxDB::Handle(CDataStream& ssKey, CDataStream& ssValue)
 
 bool CTxDB::ImportDB()
 {
-    CTxDB_BDB bdb;
-    return bdb.ImportTo(*pBlockTxDB);
+    try
+    {
+        boost::filesystem::path path = GetDataDir() / "blkindex.dat";
+        if (boost::filesystem::exists(path) && boost::filesystem::is_regular_file(path))
+        {
+            CTxDB_BDB bdb;
+            return bdb.ImportTo(*pBlockTxDB);
+        }
+    }
+    catch (...)
+    {
+    }
+    return false;
 }
 
