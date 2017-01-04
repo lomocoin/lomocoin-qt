@@ -260,6 +260,7 @@ bool AppInit2(int argc, char* argv[])
         CLevelDBArguments args;
         args.name = "blockindex";
         args.syncwrite = false;
+        args.files = 64;
 
         CLevelDBEngine *engine = new CLevelDBEngine(args);
         if (engine == NULL || !InitBlockTxDB(engine))
@@ -326,6 +327,7 @@ bool AppInit2(int argc, char* argv[])
     CLevelDBArguments args;
     args.name = "wtxdb";
     args.syncwrite = false;
+    args.files = 32;
 
     CLevelDBEngine *engine = new CLevelDBEngine(args);
     pwalletMain = new CWallet("wallet.dat",engine);
