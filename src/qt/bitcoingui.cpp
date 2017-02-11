@@ -28,7 +28,7 @@
 #include "rpcconsole.h"
 #include "wallet.h"
 
-#ifdef Q_WS_MAC
+#ifdef Q_OS_MAC
 #include "macdockiconhandler.h"
 #endif
 
@@ -52,8 +52,9 @@
 #include <QMovie>
 #include <QFileDialog>
 #include <QDesktopServices>
+#include <QStandardPaths>
 #include <QTimer>
-
+#include <QMimeData>
 #include <QDragEnterEvent>
 #include <QUrl>
 
@@ -72,7 +73,7 @@ BitcoinGUI::BitcoinGUI(QWidget *parent):
 {
     resize(850, 550);
     setWindowTitle(tr("LoMoCoin Wallet"));
-#ifndef Q_WS_MAC
+#ifndef Q_OS_MAC
     setWindowIcon(QIcon(":icons/lomocoin"));
 #else
     setUnifiedTitleAndToolBarOnMac(true);
@@ -170,7 +171,7 @@ BitcoinGUI::BitcoinGUI(QWidget *parent):
 
 BitcoinGUI::~BitcoinGUI()
 {
-#ifdef Q_WS_MAC
+#ifdef Q_OS_MAC
     delete appMenuBar;
 #endif
 }
@@ -268,7 +269,7 @@ void BitcoinGUI::createActions()
 
 void BitcoinGUI::createMenuBar()
 {
-#ifdef Q_WS_MAC
+#ifdef Q_OS_MAC
     // Create a decoupled menu bar on Mac which stays even if the window is closed
     appMenuBar = new QMenuBar();
 #else
@@ -326,7 +327,7 @@ void BitcoinGUI::setClientModel(ClientModel *clientModel)
         {
             QString title_testnet = windowTitle() + QString(" ") + tr("[testnet]");
             setWindowTitle(title_testnet);
-#ifndef Q_WS_MAC
+#ifndef Q_OS_MAC
             setWindowIcon(QIcon(":icons/lomocoin_testnet"));
 #else
             MacDockIconHandler::instance()->setIcon(QIcon(":icons/lomocoin_testnet"));
@@ -384,7 +385,7 @@ void BitcoinGUI::setWalletModel(WalletModel *walletModel)
 void BitcoinGUI::createTrayIcon()
 {
     QMenu *trayIconMenu;
-#ifndef Q_WS_MAC
+#ifndef Q_OS_MAC
     trayIcon = new QSystemTrayIcon(this);
     trayIconMenu = new QMenu(this);
     trayIcon->setContextMenu(trayIconMenu);
@@ -410,7 +411,7 @@ void BitcoinGUI::createTrayIcon()
     trayIconMenu->addAction(sendCoinsAction);
     trayIconMenu->addSeparator();
     trayIconMenu->addAction(optionsAction);
-#ifndef Q_WS_MAC // This is built-in on Mac
+#ifndef Q_OS_MAC // This is built-in on Mac
     trayIconMenu->addSeparator();
     trayIconMenu->addAction(quitAction);
 #endif
@@ -418,7 +419,7 @@ void BitcoinGUI::createTrayIcon()
     notificator = new Notificator(tr("lomocoin-qt"), trayIcon);
 }
 
-#ifndef Q_WS_MAC
+#ifndef Q_OS_MAC
 void BitcoinGUI::trayIconActivated(QSystemTrayIcon::ActivationReason reason)
 {
     if(reason == QSystemTrayIcon::Trigger)
@@ -596,7 +597,7 @@ void BitcoinGUI::error(const QString &title, const QString &message, bool modal)
 void BitcoinGUI::changeEvent(QEvent *e)
 {
     QMainWindow::changeEvent(e);
-#ifndef Q_WS_MAC // Ignored on Mac
+#ifndef Q_OS_MAC // Ignored on Mac
     if(e->type() == QEvent::WindowStateChange)
     {
         if(clientModel && clientModel->getOptionsModel()->getMinimizeToTray())
@@ -616,7 +617,7 @@ void BitcoinGUI::closeEvent(QCloseEvent *event)
 {
     if(clientModel)
     {
-#ifndef Q_WS_MAC // Ignored on Mac
+#ifndef Q_OS_MAC // Ignored on Mac
         if(!clientModel->getOptionsModel()->getMinimizeToTray() &&
            !clientModel->getOptionsModel()->getMinimizeOnClose())
         {
@@ -746,22 +747,21 @@ void BitcoinGUI::gotoMessagePage(QString addr)
 void BitcoinGUI::dragEnterEvent(QDragEnterEvent *event)
 {
     // Accept only URIs
-    if(event->mimeData()->hasUrls())
+    if (event->mimeData()->hasUrls())
         event->acceptProposedAction();
 }
 
 void BitcoinGUI::dropEvent(QDropEvent *event)
 {
-    if(event->mimeData()->hasUrls())
+    if (event->mimeData()->hasUrls())
     {
         gotoSendCoinsPage();
-        QList<QUrl> uris = event->mimeData()->urls();
+        QList <QUrl> uris = event->mimeData()->urls();
         foreach(const QUrl &uri, uris)
         {
             sendCoinsPage->handleURI(uri.toString());
         }
     }
-
     event->acceptProposedAction();
 }
 
@@ -819,7 +819,10 @@ void BitcoinGUI::encryptWallet(bool status)
 
 void BitcoinGUI::backupWallet()
 {
-    QString saveDir = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation);
+    // TODO 
+    // QString saveDir = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation);
+    QString saveDir =  QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+
     QString filename = QFileDialog::getSaveFileName(this, tr("Backup Wallet"), saveDir, tr("Wallet Data (*.dat)"));
     if(!filename.isEmpty()) {
         if(!walletModel->backupWallet(filename)) {

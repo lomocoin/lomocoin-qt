@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QSystemTrayIcon>
+#include <QDragEnterEvent>
 
 class TransactionTableModel;
 class ClientModel;
@@ -46,7 +47,7 @@ public:
         functionality.
     */
     void setWalletModel(WalletModel *walletModel);
-    
+
 protected:
     void changeEvent(QEvent *e);
     void closeEvent(QCloseEvent *event);
@@ -149,7 +150,7 @@ private slots:
     void optionsClicked();
     /** Show about dialog */
     void aboutClicked();
-#ifndef Q_WS_MAC
+#ifndef Q_OS_MAC
     /** Handle tray icon clicked */
     void trayIconActivated(QSystemTrayIcon::ActivationReason reason);
 #endif

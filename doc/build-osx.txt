@@ -37,9 +37,15 @@ git clone git@github.com:lomocoin/lomocoin.git lomocoin
 2a. (for maximum compatibility with 32-bit installs)
     Edit /opt/local/etc/macports/macports.conf and uncomment "build_arch i386"
 
+    sudo nvram boot-args="arch=x86_64"
+    sudo nvram boot-args="arch=x86_32"
+
 3.  Install dependencies from MacPorts
 
-sudo port install boost db48 openssl miniupnpc
+sudo port install boost db48 openssl miniupnpc qt4-mac qrencode
+
+# 如果使用brew安装,请使用 brew install berkeley-db(db48)
+brew install automake berkeley-db4 libtool boost  miniupnpc openssl pkg-config protobuf  qt5 libevent
 
 Optionally install qrencode (and set USE_QRCODE=1):
 sudo port install qrencode
@@ -48,8 +54,22 @@ sudo port install qrencode
 
 cd lomocoin/src
 make -f makefile.osx
+
 # To build 64-bit binaies:
 make -f makefile.osx RELEASE=true 64BIT=true
+
+5.make Makefile
+cd lomocoin
+#change path
+vim bitcoin-qt.pro
+qmake bitcoin-qt.pro
+
+6. make gui
+make
+
+# clean  : make clean
+7 make dmg
+ macdeployqt lomocoin-Qt.app    -verbose=1 -dmg
 
 Run:
   ./lomocoind --help  # for a list of command-line options.
@@ -57,3 +77,16 @@ Run
   ./lomocoind -daemon # to start the bitcoin daemon.
 Run
   ./lomocoind help # When the daemon is running, to get a list of RPC commands
+
+error :
+1.fatal error: 'openssl/rand.h' file not found
+ln -s  /usr/local/Cellar/openssl/1.0.2k/include/openssl  /usr/local/include/openssl
+2. fatal error: 'db_cxx.h' file not found
+brew install berkeley-db4
+3.fatal error: 'leveldb/db.h' file not found
+brew install  leveldb
+4.if no qmake
+ brew info qt5
+ echo 'export PATH="/usr/local/opt/qt5/bin:$PATH"' >> ~/.zshrc
+5.for q4== q5
+greaterThan(QT_MAJOR_VERSION, 4): QT +=widgets

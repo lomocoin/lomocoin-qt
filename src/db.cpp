@@ -356,7 +356,7 @@ bool CTxDB_BDB::ImportTo(CBlockTxDB& txdb)
     }
     printf("Start import blockindex from bdb...\n");
     int nCount = 0;
-    loop
+    qtloop
     {
         // Read next record
         CDataStream ssKey(SER_DISK, CLIENT_VERSION);
@@ -410,7 +410,7 @@ bool CAddrDB::LoadAddresses()
     if (!pcursor)
         return false;
 
-    loop
+    qtloop
     {
         // Read next record
         CDataStream ssKey(SER_DISK, CLIENT_VERSION);

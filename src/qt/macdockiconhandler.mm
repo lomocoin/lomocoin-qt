@@ -1,8 +1,10 @@
 
 #include "macdockiconhandler.h"
 
-#include <QtGui/QMenu>
-#include <QtGui/QWidget>
+//#include <QtGui/QMenu>
+//#include <QtGui/QWidget>
+#include <QWidget>
+#include <QMenu>
 
 extern void qt_mac_set_dock_menu(QMenu*);
 
@@ -69,15 +71,30 @@ QMenu *MacDockIconHandler::dockMenu()
 void MacDockIconHandler::setIcon(const QIcon &icon)
 {
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-    NSImage *image;
+//    NSImage *image;
+    NSImage *image = nil;
     if (icon.isNull())
         image = [[NSImage imageNamed:@"NSApplicationIcon"] retain];
     else {
         QSize size = icon.actualSize(QSize(128, 128));
         QPixmap pixmap = icon.pixmap(size);
-        CGImageRef cgImage = pixmap.toMacCGImageRef();
-        image = [[NSImage alloc] initWithCGImage:cgImage size:NSZeroSize];
-        CFRelease(cgImage);
+//        CGImageRef cgImage = pixmap.toMacCGImageRef();
+//        CGImageRef cgImage = pixmap.toMacCGImageRef();
+//        image = [[NSImage alloc] initWithCGImage:cgImage size:NSZeroSize];
+//        CFRelease(cgImage);
+        QTemporaryFile notificationIconFile;
+        if (!pixmap.isNull() && notificationIconFile.open()) {
+            QImageWriter writer(&notificationIconFile, "PNG");
+            if (writer.write(pixmap.toImage())) {
+                const char *cString = notificationIconFile.fileName().toUtf8().data();
+                NSString *macString = [NSString stringWithCString:cString encoding:NSUTF8StringEncoding];
+                image =  [[NSImage alloc] initWithContentsOfFile:macString];
+            }
+        }
+        if(!image) {
+            // if testnet image could not be created, load std. app icon
+            image = [[NSImage imageNamed:@"NSApplicationIcon"] retain];
+        }
     }
 
     [NSApp setApplicationIconImage:image];

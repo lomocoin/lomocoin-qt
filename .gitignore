@@ -1,1 +1,7 @@
 .project
+.idea/
+CMakeLists.txt
+Makefile
+.qmake.stash
+cmake-build-debug/
+.DS_Store

@@ -1,0 +1,2 @@
+#define BUILD_DESC "v0.5.4-31-g4901928-dirty"
+#define BUILD_DATE "2017-01-05 10:18:00 +0800"

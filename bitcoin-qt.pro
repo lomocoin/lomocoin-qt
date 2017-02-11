@@ -12,21 +12,34 @@ CONFIG += static
 # use: BOOST_THREAD_LIB_SUFFIX=_win32-...
 # or when linking against a specific BerkelyDB version: BDB_LIB_SUFFIX=-4.8
 
-# Dependency library locations can be customized with BOOST_INCLUDE_PATH, 
+# Dependency library locations can be customized with BOOST_INCLUDE_PATH,
 #    BOOST_LIB_PATH, BDB_INCLUDE_PATH, BDB_LIB_PATH
 #    OPENSSL_INCLUDE_PATH and OPENSSL_LIB_PATH respectively
 
 #BOOST_LIB_SUFFIX=-mgw49-mt-s-1_52
-#BOOST_INCLUDE_PATH=d:/deps/boost_1_52_0
-#BOOST_LIB_PATH=d:/deps/boost_1_52_0/stage/lib
-#BDB_INCLUDE_PATH=d:/deps/db-4.8.30.NC/build_unix
-#BDB_LIB_PATH=d:/deps/db-4.8.30.NC/build_unix
-#OPENSSL_INCLUDE_PATH=d:/deps/openssl-1.0.1l/include
+#BOOST_INCLUDE_PATH=/usr/local/Cellar/boost155/1.55.0_1/include
+#BOOST_LIB_PATH=/usr/local/Cellar/boost155/1.55.0_1/include/stage/lib
+#BDB_INCLUDE_PATH= /usr/local/Cellar/berkeley-db4/4.8.30/include
+#BDB_LIB_PATH= /usr/local/Cellar/berkeley-db4/4.8.30/include
+#OPENSSL_INCLUDE_PATH=/usr/local/Cellar/openssl/1.0.2k/include
 #OPENSSL_LIB_PATH=d:/deps/openssl-1.0.1l
 #MINIUPNPC_INCLUDE_PATH=d:/deps/
 #MINIUPNPC_LIB_PATH=d:/deps/miniupnpc
 #QRENCODE_INCLUDE_PATH=d:/deps/qrencode-3.4.4
 #QRENCODE_LIB_PATH=d:/deps/qrencode-3.4.4/.libs
+
+# mac default path
+BOOST_LIB_SUFFIX=-mt
+BOOST_INCLUDE_PATH=/usr/local/opt/boost/include
+BOOST_LIB_PATH=/usr/local/opt/boost/lib
+BDB_INCLUDE_PATH=/usr/local/Cellar/berkeley-db4/4.8.30/include
+BDB_LIB_PATH=/usr/local/Cellar/berkeley-db4/4.8.30/lib
+OPENSSL_INCLUDE_PATH=/usr/local/Cellar/openssl/1.0.2k/include
+OPENSSL_LIB_PATH=/usr/local/Cellar/openssl/1.0.2k/lib
+MINIUPNPC_INCLUDE_PATH=/usr/local/Cellar/miniupnpc/2.0/include
+MINIUPNPC_LIB_PATH=/usr/local/Cellar/miniupnpc/2.0/lib
+QRENCODE_INCLUDE_PATH=/usr/local/Cellar/qrencode/3.4.4/include
+QRENCODE_LIB_PATH=/usr/local/Cellar/qrencode/3.4.4/lib
 
 OBJECTS_DIR = build
 MOC_DIR = build
@@ -359,7 +372,7 @@ isEmpty(BOOST_LIB_PATH) {
 }
 
 isEmpty(BOOST_INCLUDE_PATH) {
-    macx:BOOST_INCLUDE_PATH = /opt/local/include
+    macx:BOOST_INCLUDE_PATH = /opt/local/include/boost
 }
 
 windows:LIBS += -lws2_32 -lshlwapi
@@ -382,8 +395,8 @@ windows:!contains(MINGW_THREAD_BUGFIX, 0) {
     LIBS += -lrt
 }
 
-macx:HEADERS += src/qt/macdockiconhandler.h
-macx:OBJECTIVE_SOURCES += src/qt/macdockiconhandler.mm
+macx:HEADERS += src/qt/macdockiconhandler.h src/qt/macnotificationhandler.h
+macx:OBJECTIVE_SOURCES += src/qt/macdockiconhandler.mm src/qt/macnotificationhandler.mm
 macx:LIBS += -framework Foundation -framework ApplicationServices -framework AppKit
 macx:DEFINES += MAC_OSX MSG_NOSIGNAL=0
 macx:ICON = src/qt/res/icons/lomocoin.icns
@@ -405,3 +418,6 @@ contains(RELEASE, 1) {
 }
 
 system($$QMAKE_LRELEASE -silent $$_PRO_FILE_)
+QT += core gui
+greaterThan(QT_MAJOR_VERSION, 4): QT +=widgets
+CONFIG += c++11

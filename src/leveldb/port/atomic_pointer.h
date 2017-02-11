@@ -53,6 +53,7 @@ namespace port {
 #elif defined(OS_MACOSX)
 inline void MemoryBarrier() {
   OSMemoryBarrier();
+//    std::atomic_thread_fence();
 }
 #define LEVELDB_HAVE_MEMORY_BARRIER
 
