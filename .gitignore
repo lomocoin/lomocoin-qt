@@ -5,3 +5,8 @@ Makefile
 .qmake.stash
 cmake-build-debug/
 .DS_Store
+QT钱包.config
+QT钱包.creator
+QT钱包.creator.user
+QT钱包.files
+QT钱包.includes

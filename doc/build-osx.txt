@@ -58,18 +58,6 @@ make -f makefile.osx
 # To build 64-bit binaies:
 make -f makefile.osx RELEASE=true 64BIT=true
 
-5.make Makefile
-cd lomocoin
-#change path
-vim bitcoin-qt.pro
-qmake bitcoin-qt.pro
-
-6. make gui
-make
-
-# clean  : make clean
-7 make dmg
- macdeployqt lomocoin-Qt.app    -verbose=1 -dmg
 
 Run:
   ./lomocoind --help  # for a list of command-line options.
@@ -77,6 +65,17 @@ Run
   ./lomocoind -daemon # to start the bitcoin daemon.
 Run
   ./lomocoind help # When the daemon is running, to get a list of RPC commands
+
+5.make Makefile
+cd lomocoin
+#change path
+vim bitcoin-qt.pro
+qmake bitcoin-qt.pro  -config release
+6. make gui
+make
+# clean  : make clean
+7 make dmg
+ macdeployqt lomocoin-Qt.app    -verbose=1 -dmg
 
 error :
 1.fatal error: 'openssl/rand.h' file not found
@@ -90,3 +89,19 @@ brew install  leveldb
  echo 'export PATH="/usr/local/opt/qt5/bin:$PATH"' >> ~/.zshrc
 5.for q4== q5
 greaterThan(QT_MAJOR_VERSION, 4): QT +=widgets
+6.for lib or framework is not isset
+cp -f /usr/local/opt/miniupnpc/lib/libminiupnpc.16.dylib lomocoin-Qt.app/Contents/Frameworks
+cp -f /usr/lib/libobjc.A.dylib lomocoin-Qt.app/Contents/MacDylib
+cp -f /usr/lib/libSystem.B.dylib lomocoin-Qt.app/Contents/MacDylib
+cp -f /usr/lib/libc++.1.dylib  lomocoin-Qt.app/Contents/MacDylib
+install_name_tool -change  /usr/lib/libobjc.A.dylib  @executable_path/../MacDylib/libobjc.A.dylib  lomocoin-Qt
+install_name_tool -change  /usr/lib/libSystem.B.dylib  @executable_path/../MacDylib/libSystem.B.dylib  lomocoin-Qt
+install_name_tool -change  /usr/lib/libc++.1.dylib  @executable_path/../MacDylib/libc++.1.dylib  lomocoin-Qt
+
+cp -R /System/Library/Frameworks/Foundation.framework/Versions/C/Foundation lomocoin-Qt.app/Contents//Frameworks
+cp -R /System/Library/Frameworks/AppKit.framework/Versions/C/AppKit lomocoin-Qt.app/Contents//Frameworks
+cp -R /System/Library/Frameworks/ApplicationServices.framework/Versions/A/ApplicationServices lomocoin-Qt.app/Contents//Frameworks
+cp -R /System/Library/Frameworks/IOKit.framework/Versions/A/IOKit lomocoin-Qt.app/Contents//Frameworks
+cp -R /System/Library/Frameworks/DiskArbitration.framework/Versions/A/DiskArbitration lomocoin-Qt.app/Contents//Frameworks
+cp -R /System/Library/Frameworks/OpenGL.framework/Versions/A/OpenGL lomocoin-Qt.app/Contents//Frameworks
+cp -R /System/Library/Frameworks/AGL.framework/Versions/A/AGL lomocoin-Qt.app/Contents//Frameworks

@@ -148,9 +148,12 @@ class FrameworkInfo(object):
 
 class ApplicationBundleInfo(object):
     def __init__(self, path):
+        print path
         self.path = path
         appName = os.path.splitext(os.path.basename(path))[0]
         self.binaryPath = os.path.join(path, "Contents", "MacOS", appName)
+        print self.binaryPath
+
         if not os.path.exists(self.binaryPath):
             raise RuntimeError("Could not find bundle binary for " + path)
         self.resourcesPath = os.path.join(path, "Contents", "Resources")
@@ -763,7 +766,7 @@ if config.dmg is not None:
                 items_positions.append(itemscript.substitute(params))
 
         params = {
-            "disk" : "PPcoin-Qt",
+            "disk" : "lomocoin-Qt",
             "window_bounds" : "300,300,800,620",
             "icon_size" : "96",
             "background_commands" : "",
