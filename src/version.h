@@ -31,7 +31,7 @@ extern const std::string CLIENT_DATE;
 #define PPCOIN_VERSION_MAJOR       0
 #define PPCOIN_VERSION_MINOR       5
 #define PPCOIN_VERSION_REVISION    5
-#define PPCOIN_VERSION_BUILD       3
+#define PPCOIN_VERSION_BUILD       4
 
 static const int PPCOIN_VERSION =
                            1000000 * PPCOIN_VERSION_MAJOR
