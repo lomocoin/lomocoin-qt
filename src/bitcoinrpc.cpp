@@ -2797,7 +2797,7 @@ Value createrawtransaction(const Array& params, bool fHelp)
 {
     if (fHelp || params.size() < 2 || params.size() > 3)
         throw runtime_error(
-            "createrawtransaction [{\"txid\":txid,\"vout\":n},...] {address:amount,...} [\"frozentime\"]\n"
+            "createrawtransaction [{\"txid\":txid,\"vout\":n},...] {address:amount,data:hex,...} [\"frozentime\"]\n"
             "Create a transaction spending given inputs\n"
             "(array of objects containing transaction id and output number),\n"
             "sending to given address(es).\n"
@@ -2842,20 +2842,29 @@ Value createrawtransaction(const Array& params, bool fHelp)
     set<CBitcoinAddress> setAddress;
     BOOST_FOREACH(const Pair& s, sendTo)
     {
-        CBitcoinAddress address(s.name_);
-        if (!address.IsValid())
-            throw JSONRPCError(-5, string("Invalid Bitcoin address: ")+s.name_);
+        if (s.name_ == "data") 
+        {
+            vector<unsigned char> data(ParseHex(s.value_.get_str()));
+            CTxOut out(0, CScript() << OP_RETURN << data);
+            rawTx.vout.push_back(out);
+        }
+        else
+        {
+            CBitcoinAddress address(s.name_);
+            if (!address.IsValid())
+                throw JSONRPCError(-5, string("Invalid Bitcoin address: ")+s.name_);
 
-        if (setAddress.count(address))
-            throw JSONRPCError(-8, string("Invalid parameter, duplicated address: ")+s.name_);
-        setAddress.insert(address);
+            if (setAddress.count(address))
+                throw JSONRPCError(-8, string("Invalid parameter, duplicated address: ")+s.name_);
+            setAddress.insert(address);
 
-        CScript scriptPubKey;
-        scriptPubKey.SetDestination(address.Get());
-        int64 nAmount = AmountFromValue(s.value_);
+            CScript scriptPubKey;
+            scriptPubKey.SetDestination(address.Get());
+            int64 nAmount = AmountFromValue(s.value_);
 
-        CTxOut out(nAmount, scriptPubKey);
-        rawTx.vout.push_back(out);
+            CTxOut out(nAmount, scriptPubKey);
+            rawTx.vout.push_back(out);
+        }
     }
 
     CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
