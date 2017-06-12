@@ -12,6 +12,7 @@
 #include <boost/algorithm/string/replace.hpp>
 #include "base58.h"
 #include "wtxdb.h"
+#include "walletbackup.h"
 
 using namespace std;
 
@@ -2497,5 +2498,68 @@ bool CWallet::ExistsAndConfirmed(uint256 hashTx) const
         return (*mi).second.IsConfirmed();
     }
     return false;
+}
+
+bool CWallet::Export(const boost::filesystem::path& pathDest,const SecureString& strWalletPassphrase)
+{
+    using namespace boost::filesystem;
+
+    if (exists(pathDest) && !is_regular_file(pathDest))
+    {
+        printf("Failed to create/open export file , aborted...\n");
+        return false;
+    }
+    // Dump DB
+
+    CDataStream ssBuffer(SER_DISK, CLIENT_VERSION);
+    {
+        LOCK(cs_wallet);
+        if (!CWalletDB(strWalletFile).ExportDB(ssBuffer))
+        {
+            printf("Failed to dump wallet database, aborted..\n");
+            return false;
+        }
+    }
+    CWalletBackup wBackup;
+    if (!wBackup.Import(strWalletPassphrase,ssBuffer))
+    {
+        printf("Failed to construct dump data(import), aborted..\n");
+        return false;
+    }
+
+    if (!wBackup.Export(strWalletPassphrase,ssBuffer))
+    {
+        printf("Failed to construct dump data(export), aborted..\n");
+        return false;
+    }
+
+    uint256 hash = Hash(ssBuffer.begin(), ssBuffer.end());
+    unsigned int size = ssBuffer.size();
+    // Write file
+    try
+    {
+        FILE * fp = fopen(pathDest.c_str(),"w+");
+        if (!fp)
+        {
+            printf("Failed to create/open export file , aborted...\n");
+            return false;
+        }
+        unsigned char pchMessageStart[4];
+        GetMessageStart(pchMessageStart, true);
+
+        CAutoFile ssFile(fp,SER_DISK, CLIENT_VERSION);
+        ssFile << pchMessageStart[0] << pchMessageStart[1] 
+               << pchMessageStart[2] << pchMessageStart[3] 
+               << string("main")
+               << (unsigned int)nWalletVersion
+               << hash << size << ssBuffer;
+    }
+    catch (...)
+    {
+        printf("Failed to write data into export file, aborted..\n");
+        return false;
+    }
+
+    return true;
 }
 

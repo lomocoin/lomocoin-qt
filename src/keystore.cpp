@@ -26,6 +26,20 @@ bool CBasicKeyStore::AddKey(const CKey& key)
     return true;
 }
 
+void CBasicKeyStore::GetCScripts(std::set<CScriptID> &setAddress) const
+{           
+    setAddress.clear();
+    {
+        LOCK(cs_KeyStore);
+        ScriptMap::const_iterator mi = mapScripts.begin();
+        while (mi != mapScripts.end())
+        {
+            setAddress.insert((*mi).first);
+            mi++;
+        }
+    }
+}
+
 bool CBasicKeyStore::AddCScript(const CScript& redeemScript)
 {
     {
@@ -173,6 +187,23 @@ bool CCryptoKeyStore::GetPubKey(const CKeyID &address, CPubKey& vchPubKeyOut) co
         if (mi != mapCryptedKeys.end())
         {
             vchPubKeyOut = (*mi).second.first;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool CCryptoKeyStore::GetCryptedSecret(const CKeyID &address, std::vector<unsigned char> &vchCryptedSecretOut) const
+{
+    {
+        LOCK(cs_KeyStore);
+        if (!IsCrypted())
+            return false;
+
+        CryptedKeyMap::const_iterator mi = mapCryptedKeys.find(address);
+        if (mi != mapCryptedKeys.end())
+        {
+            vchCryptedSecretOut = (*mi).second.second;
             return true;
         }
     }

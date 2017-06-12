@@ -107,3 +107,33 @@ Value dumpprivkey(const Array& params, bool fHelp)
         throw JSONRPCError(-4,"Private key for address " + strAddress + " is not known");
     return CBitcoinSecret(vchSecret, fCompressed).ToString();
 }
+
+Value walletexport(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() != 2)
+    {
+        throw runtime_error(
+            "walletexport <destination> <passphrase>\n"
+            "Export the wallet to <destination>.\n"
+            "For encrypted wallet, enter <passphrase> same as the wallet passphrase.\n"
+            "Otherwise, <passphrase> is new passphrase to import only.\n");
+    }
+
+    boost::filesystem::path pathDest(boost::filesystem::system_complete(params[0].get_str()));
+
+    SecureString strWalletPass;
+    strWalletPass.reserve(100);
+    strWalletPass = params[1].get_str().c_str();
+
+    if (strWalletPass.length() < 1)
+    {
+        throw JSONRPCError(-13,"Invalid passphrase");
+    }
+
+    if (!pwalletMain->Export(pathDest,strWalletPass))
+    {
+        throw JSONRPCError(-102,"Failed to export wallet");
+    }
+    return Value::null;
+}
+

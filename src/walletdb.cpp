@@ -223,6 +223,63 @@ int CWalletDB::LoadWallet(CWallet* pwallet)
     return DB_LOAD_OK;
 }
 
+bool CWalletDB::ExportDB(CDataStream& ssBuffer)
+{
+    // Get cursor
+    Dbc* pcursor = GetCursor();
+    if (!pcursor)
+    {
+        printf("Error getting wallet database cursor\n");
+        return false;
+    }
+
+    
+    CMasterKey kMasterKey;
+    unsigned int nMaxMasterKeyID = 0;
+    loop
+    {
+        // Read next record
+        CDataStream ssKey(SER_DISK, CLIENT_VERSION);
+        CDataStream ssValue(SER_DISK, CLIENT_VERSION);
+        int ret = ReadAtCursor(pcursor, ssKey, ssValue);
+        if (ret == DB_NOTFOUND)
+            break;
+        else if (ret != 0)
+        {
+            printf("Error reading next record from wallet database\n");
+            return false;
+        }
+        string strType;
+        ssKey >> strType;
+        if (strType == "name")
+        {
+            string strAddress;
+            ssKey >> strAddress;
+        }
+        else if ((strType == "key" || strType == "wkey" || strType == "ckey" || strType == "cscript"
+                 || strType == "name" || strType == "acc") && !ssKey.empty())
+        {
+            ssBuffer << ssKey << ssValue;
+        }
+        else if (strType == "mkey")
+        {
+            unsigned int nID;
+            ssKey >> nID;
+            if (nID > nMaxMasterKeyID)
+            {
+                nMaxMasterKeyID = nID;
+                ssValue >> kMasterKey;
+            }
+        }
+    }
+    if (nMaxMasterKeyID > 0)
+    {
+        ssBuffer << string("mkey") << kMasterKey;
+    }
+    pcursor->close();
+    return true;
+}
+
 void ThreadFlushWalletDB(void* parg)
 {
     const string& strFile = ((const string*)parg)[0];

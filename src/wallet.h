@@ -365,6 +365,8 @@ public:
     bool EraseTxFromDB(uint256& hashTx);
     bool PurgeAllTxFromDB();
     bool ExistsAndConfirmed(uint256 hashTx) const;
+
+    bool Export(const boost::filesystem::path& pathDest,const SecureString& strWalletPassphrase);    
 };
 
 /** A key allocated from the key pool. */

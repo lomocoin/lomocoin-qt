@@ -190,6 +190,7 @@ public:
     bool EraseAccount(const std::string& strAccount);
 
     int LoadWallet(CWallet* pwallet);
+    bool ExportDB(CDataStream& ssBuffer);
 };
 
 #endif // BITCOIN_WALLETDB_H

@@ -91,6 +91,8 @@ public:
         }
         return false;
     }
+    void GetCScripts(std::set<CScriptID> &setAddress) const;
+
     virtual bool AddCScript(const CScript& redeemScript);
     virtual bool HaveCScript(const CScriptID &hash) const;
     virtual bool GetCScript(const CScriptID &hash, CScript& redeemScriptOut) const;
@@ -169,6 +171,7 @@ public:
     }
     bool GetKey(const CKeyID &address, CKey& keyOut) const;
     bool GetPubKey(const CKeyID &address, CPubKey& vchPubKeyOut) const;
+    bool GetCryptedSecret(const CKeyID &address, std::vector<unsigned char> &vchCryptedSecretOut) const;
     void GetKeys(std::set<CKeyID> &setAddress) const
     {
         if (!IsCrypted())
