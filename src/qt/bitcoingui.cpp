@@ -36,6 +36,7 @@
 #include <QMainWindow>
 #include <QMenuBar>
 #include <QMenu>
+#include <QMimeData>
 #include <QIcon>
 #include <QTabWidget>
 #include <QVBoxLayout>
