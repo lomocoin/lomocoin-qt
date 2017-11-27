@@ -76,7 +76,7 @@ int CWalletDB::LoadWallet(CWallet* pwallet)
             return DB_CORRUPT;
         }
 
-        loop
+        LOOP
         {
             // Read next record
             CDataStream ssKey(SER_DISK, CLIENT_VERSION);
@@ -236,7 +236,7 @@ bool CWalletDB::ExportDB(CDataStream& ssBuffer)
     
     CMasterKey kMasterKey;
     unsigned int nMaxMasterKeyID = 0;
-    loop
+    LOOP
     {
         // Read next record
         CDataStream ssKey(SER_DISK, CLIENT_VERSION);

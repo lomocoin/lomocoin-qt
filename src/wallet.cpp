@@ -1453,7 +1453,7 @@ bool CWallet::CreateTransaction(const vector<pair<CScript, int64> >& vecSend, CW
         CTxDB txdb("r");
         {
             nFeeRet = nTransactionFee;
-            loop
+            LOOP
             {
                 wtxNew.vin.clear();
                 wtxNew.vout.clear();
@@ -1621,7 +1621,7 @@ string CWallet::MergeAddressMoney(CScript scriptPubKey,int64 nMergeThresh,CWalle
             }
 
             unsigned int nMaxMergeTx = 64;
-            loop
+            LOOP
             {
                 int64 nValueIn = 0;
 
@@ -1866,7 +1866,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
     }
 
     int64 nMinFee = 0;
-    loop
+    LOOP
     {
         // Set output amount
         if (txNew.vout.size() == 3)

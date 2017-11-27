@@ -89,7 +89,7 @@ void CNode::PushGetBlocks(CBlockIndex* pindexBegin, uint256 hashEnd)
 bool RecvLine(SOCKET hSocket, string& strLine)
 {
     strLine = "";
-    loop
+    LOOP
     {
         char c;
         int nBytes = recv(hSocket, &c, 1, 0);
@@ -152,7 +152,7 @@ bool GetMyExternalIP2(const CService& addrConnect, const char* pszGet, const cha
     {
         if (strLine.empty()) // HTTP response is separated from headers by blank line
         {
-            loop
+            LOOP
             {
                 if (!RecvLine(hSocket, strLine))
                 {
@@ -511,7 +511,7 @@ void ThreadSocketHandler2(void* parg)
     list<CNode*> vNodesDisconnected;
     unsigned int nPrevNodeCount = 0;
 
-    loop
+    LOOP
     {
         //
         // Disconnect nodes
@@ -1150,7 +1150,7 @@ void ThreadOpenConnections2(void* parg)
 
     // Initiate network connections
     int64 nStart = GetTime();
-    loop
+    LOOP
     {
         vnThreadsRunning[THREAD_OPENCONNECTIONS]--;
         Sleep(500);
@@ -1207,7 +1207,7 @@ void ThreadOpenConnections2(void* parg)
         int64 nANow = GetAdjustedTime();
 
         int nTries = 0;
-        loop
+        LOOP
         {
             // use an nUnkBias between 10 (no outgoing connections) and 90 (8 outgoing connections)
             CAddress addr = addrman.Select(10 + min(nOutbound,8)*10);
@@ -1277,7 +1277,7 @@ void ThreadOpenAddedConnections2(void* parg)
             }
         }
     }
-    loop
+    LOOP
     {
         vector<vector<CService> > vservConnectAddresses = vservAddressesToAdd;
         // Attempt to connect to each IP for each addnode entry until at least one is successful per addnode entry
