@@ -1090,11 +1090,18 @@ unsigned int static GetNextTargetRequired(const CBlockIndex* pindexLast, bool fP
     if(fProofOfStake){
         if (bnNew > bnProofOfStakeLimit)
             bnNew = bnProofOfStakeLimit;
-
+        else {
+            unsigned int nSize = pindexPrev->nBits >> 24;
+            uint64 nBitsNew = pindexPrev->nBits & 0xffffff;
+            nBitsNew *= ((nInterval - 1) * nTargetSpacing + nActualSpacing + nActualSpacing);
+            nBitsNew /= ((nInterval + 1) * nTargetSpacing);
+            if (nBitsNew >= (bnProofOfStakeLimit >> ((nSize - 3) * 8)))
+                bnNew = bnProofOfStakeLimit;
+        } 
     }else{
-		if (bnNew > bnProofOfWorkLimit)
-			bnNew = bnProofOfWorkLimit;
-	}
+        if (bnNew > bnProofOfWorkLimit)
+	    bnNew = bnProofOfWorkLimit;
+    }
     return bnNew.GetCompact();
 }
 
