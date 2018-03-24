@@ -961,7 +961,7 @@ Address: %4
     <message>
         <location filename="../forms/overviewpage.ui" line="68"/>
         <source>Stake:</source>
-        <translation type="unfinished"></translation>
+        <translation>Extra:</translation>
     </message>
     <message>
         <location filename="../forms/overviewpage.ui" line="82"/>
@@ -1007,7 +1007,7 @@ Address: %4
     <message>
         <location filename="../overviewpage.cpp" line="113"/>
         <source>Your current stake</source>
-        <translation type="unfinished"></translation>
+        <translation>Your current extra</translation>
     </message>
     <message>
         <location filename="../overviewpage.cpp" line="118"/>
@@ -1520,7 +1520,7 @@ Address: %4
     <message>
         <location filename="../transactiondesc.cpp" line="231"/>
         <source>Staked coins must wait 120 blocks before they can return to balance and be spent.  When you generated this proof-of-stake block, it was broadcast to the network to be added to the block chain.  If it fails to get into the chain, it will change to &quot;not accepted&quot; and not be a valid stake.  This may occasionally happen if another node generates a proof-of-stake block within a few seconds of yours.</source>
-        <translation type="unfinished"></translation>
+        <translation>Extra coins must wait 120 blocks before they can return to balance and be spent.  When you generated this proof-of-stake block, it was broadcast to the network to be added to the block chain.  If it fails to get into the chain, it will change to &quot;not accepted&quot; and not be a valid extra coins.  This may occasionally happen if another node generates a proof-of-stake block within a few seconds of yours.</translation>
     </message>
 </context>
 <context>
@@ -1632,7 +1632,7 @@ Address: %4
     <message>
         <location filename="../transactiontablemodel.cpp" line="358"/>
         <source>Mint by stake</source>
-        <translation type="unfinished"></translation>
+        <translation>Extra</translation>
     </message>
     <message>
         <location filename="../transactiontablemodel.cpp" line="397"/>
@@ -1726,7 +1726,7 @@ Address: %4
     <message>
         <location filename="../transactionview.cpp" line="78"/>
         <source>Mint by stake</source>
-        <translation type="unfinished"></translation>
+        <translation>Extra</translation>
     </message>
     <message>
         <location filename="../transactionview.cpp" line="79"/>

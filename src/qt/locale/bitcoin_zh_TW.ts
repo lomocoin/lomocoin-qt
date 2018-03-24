@@ -955,7 +955,7 @@ Address: %4
     <message>
         <location filename="../forms/overviewpage.ui" line="68"/>
         <source>Stake:</source>
-        <translation>利息：</translation>
+        <translation>额外：</translation>
     </message>
     <message>
         <location filename="../forms/overviewpage.ui" line="82"/>
@@ -1001,7 +1001,7 @@ Address: %4
     <message>
         <location filename="../overviewpage.cpp" line="113"/>
         <source>Your current stake</source>
-        <translation>當前利息</translation>
+        <translation>當前额外收入</translation>
     </message>
     <message>
         <location filename="../overviewpage.cpp" line="118"/>
@@ -1620,7 +1620,7 @@ Address: %4
     <message>
         <location filename="../transactiontablemodel.cpp" line="358"/>
         <source>Mint by stake</source>
-        <translation>利息</translation>
+        <translation>额外</translation>
     </message>
     <message>
         <location filename="../transactiontablemodel.cpp" line="397"/>
@@ -1714,7 +1714,7 @@ Address: %4
     <message>
         <location filename="../transactionview.cpp" line="78"/>
         <source>Mint by stake</source>
-        <translation>利息</translation>
+        <translation>额外</translation>
     </message>
     <message>
         <location filename="../transactionview.cpp" line="79"/>
