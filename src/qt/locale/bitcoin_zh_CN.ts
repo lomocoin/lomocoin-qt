@@ -1001,7 +1001,7 @@ Address: %4
     <message>
         <location filename="../overviewpage.cpp" line="113"/>
         <source>Your current stake</source>
-        <translation>当前额外收入</translation>
+        <translation>当前额外获得</translation>
     </message>
     <message>
         <location filename="../overviewpage.cpp" line="118"/>
