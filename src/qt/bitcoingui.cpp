@@ -36,6 +36,7 @@
 #include <QMainWindow>
 #include <QMenuBar>
 #include <QMenu>
+#include <QMimeData>
 #include <QIcon>
 #include <QTabWidget>
 #include <QVBoxLayout>
@@ -819,7 +820,7 @@ void BitcoinGUI::encryptWallet(bool status)
 
 void BitcoinGUI::backupWallet()
 {
-    QString saveDir = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation);
+    QString saveDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
     QString filename = QFileDialog::getSaveFileName(this, tr("Backup Wallet"), saveDir, tr("Wallet Data (*.dat)"));
     if(!filename.isEmpty()) {
         if(!walletModel->backupWallet(filename)) {

@@ -800,17 +800,17 @@ bool EvalScript(vector<vector<unsigned char> >& stack, const CScript& script, co
                         break;
 
                     case OP_MUL:
-                        if (!BN_mul(&bn, &bn1, &bn2, pctx))
+                        if (!BN_mul(bn.to_bignum(), bn1.to_bignum(), bn2.to_bignum(), pctx))
                             return false;
                         break;
 
                     case OP_DIV:
-                        if (!BN_div(&bn, NULL, &bn1, &bn2, pctx))
+                        if (!BN_div(bn.to_bignum(), NULL, bn1.to_bignum(), bn2.to_bignum(), pctx))
                             return false;
                         break;
 
                     case OP_MOD:
-                        if (!BN_mod(&bn, &bn1, &bn2, pctx))
+                        if (!BN_mod(bn.to_bignum(), bn1.to_bignum(), bn2.to_bignum(), pctx))
                             return false;
                         break;
 
@@ -1259,7 +1259,7 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, vector<vector<unsi
         // Compare
         CScript::const_iterator pc1 = script1.begin();
         CScript::const_iterator pc2 = script2.begin();
-        loop
+        LOOP
         {
             if (pc1 == script1.end() && pc2 == script2.end())
             {

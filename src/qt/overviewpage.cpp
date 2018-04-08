@@ -46,7 +46,7 @@ public:
         bool confirmed = index.data(TransactionTableModel::ConfirmedRole).toBool();
         QVariant value = index.data(Qt::ForegroundRole);
         QColor foreground = option.palette.color(QPalette::Text);
-        if(qVariantCanConvert<QColor>(value))
+        if(value.canConvert<QColor>())
         {
             foreground = qvariant_cast<QColor>(value);
         }
@@ -146,7 +146,7 @@ OverviewPage::OverviewPage(QWidget *parent) :
     tableModel->setHeaderData(1,Qt::Horizontal,tr("Amount (LMC)"));
     ui->tableFrozenCoins->setModel(tableModel);
     ui->tableFrozenCoins->horizontalHeader()->resizeSection(0,240);
-    ui->tableFrozenCoins->horizontalHeader()->setResizeMode(1,QHeaderView::Stretch);
+    ui->tableFrozenCoins->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     ui->tableFrozenCoins->setTabKeyNavigation(false);
     ui->tableFrozenCoins->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->tableFrozenCoins->setSelectionBehavior(QAbstractItemView::SelectRows);
